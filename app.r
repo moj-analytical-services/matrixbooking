@@ -7,6 +7,8 @@ source("data_cleaning_functions.R")
 source("charting_functions.R")
 
 
+joined_observations <- s3tools::read_using(feather::read_feather("alpha-app-matrixbooking/leeds.feather"))
+
 ui <- dashboardPage(
   dashboardHeader(title = "Matrixbooking app"),
   dashboardSidebar(
@@ -36,7 +38,8 @@ ui <- dashboardPage(
               fluidRow(
                 selectInput(inputId = "room",
                             label = "Select room",
-                            choices = unique(joined_observations$roomname)),
+                            choices = sort(unique(joined_observations$roomname))
+                            ),
                 plotlyOutput(outputId = "booking_length_by_room"),
                 plotlyOutput(outputId = "booked_permutation"),
                 plotlyOutput(outputId = "booked_by_occupancy"),
@@ -48,7 +51,7 @@ ui <- dashboardPage(
               fluidRow(
                 pickerInput(inputId = "room_type",
                             label = "Select Room Type(s)",
-                            choices = unique(joined_observations$devicetype),
+                            choices = sort(unique(joined_observations$devicetype)),
                             selected = unique(joined_observations$devicetype),
                             options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
                             multiple = TRUE),

@@ -22,12 +22,20 @@ get_booked_permutation <- function(joined_observations) {
 }
 
 room_utilisation_permutation <- function(joined_observations) {
-  utilisation_by_permutation <- get_booked_permutation(joined_observations)
+  utilisation_by_permutation <- get_booked_permutation(joined_observations) %>%
+    count(booked_permutation, date) %>%
+    group_by(date) %>%
+    mutate(prop = prop.table(n)) %>% 
+    filter(booked_permutation != "1. Neither booked nor occupied")
+  
+  
   
   ggplot(data = utilisation_by_permutation,
          mapping = aes(x = date,
+                       y = prop,
                        fill = booked_permutation)) +
-    geom_bar(position = "fill") +
+    geom_bar(position = "stack",
+             stat = "identity") +
     scale_fill_brewer(palette = "Spectral")
   
 }
@@ -109,6 +117,10 @@ occupancy_during_booked_time <- function(joined_observations) {
 }
 
 room_booking_length_histogram <- function(joined_observations) {
+  
+  # Switched to using plot_ly, because ggplotly produced strange results.
+  # Should I port it?
+  
   booking_lengths <- joined_observations %>%
     filter(is_booked == 1) %>%
     group_by(id) %>%
