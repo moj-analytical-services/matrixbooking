@@ -3,13 +3,6 @@ library(ggplot2)
 library(scales)
 
 
-get_utlisation_by_date <- function(joined_observations) {
-  joined_observations %>% filter(status != "CANCELLED") %>%
-    group_by(date, roomname, is_booked) %>% 
-    summarise(utilisation = mean(sensor_value, na.rm = T)) %>% 
-    filter(!is.na(id)) %>%
-    get_util_cat()
-}
 
 get_booked_permutation <- function(joined_observations) {
   joined_observations %>% 
@@ -42,6 +35,14 @@ room_utilisation_permutation <- function(joined_observations) {
     ggtitle("Room booking and occupancy")
   
 }
+
+get_utilisation_by_date <- function(joined_observations) {
+  joined_observations %>% filter(status != "CANCELLED") %>%
+    group_by(date, roomname, is_booked) %>% 
+    summarise(utilisation = mean(sensor_value, na.rm = T)) %>%
+    get_util_cat()
+}
+
 
 room_utilisation_by_date <- function(joined_observations, bar_position = 'fill') {
   # Plots the number of bookings that Bar position can either be stack or fill
