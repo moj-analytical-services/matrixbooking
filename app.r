@@ -10,7 +10,7 @@ source("charting_functions.R")
 joined_observations <- s3tools::read_using(feather::read_feather,"alpha-app-matrixbooking/leeds.feather")
 
 ui <- dashboardPage(
-  dashboardHeader(title = "Matrixbooking app"),
+  dashboardHeader(title = "Matrixbooking app v0.0.2"),
   dashboardSidebar(
     sidebarMenu(
       #menuItem("Data Download", tabName = "data_download"),
