@@ -14,10 +14,11 @@ get_utlisation_by_date <- function(joined_observations) {
 get_booked_permutation <- function(joined_observations) {
   joined_observations %>% 
     mutate(booked_permutation = case_when(
-      sensor_value == 1 & is_booked == 1 ~ "4. Booked and occupied",
-      sensor_value == 1 & is_booked == 0 ~ "3. Occupied but not booked",
-      sensor_value != 1 & is_booked == 1 ~ "2. Booked but not occupied",
-      sensor_value != 1 & is_booked == 0 ~ "1. Neither booked nor occupied")
+      sensor_value == 1 & is_booked == 1 ~ "3. Booked and occupied",
+      sensor_value == 1 & is_booked == 0 ~ "2. Occupied but not booked",
+      sensor_value == 0 & is_booked == 1 ~ "1. Booked but not occupied",
+      sensor_value == 0 & is_booked == 0 ~ "0. Neither booked nor occupied",
+      is.na(sensor_value) ~ "invalid occupeye sensor reading")
     )
 }
 
@@ -26,7 +27,7 @@ room_utilisation_permutation <- function(joined_observations) {
     count(booked_permutation, date) %>%
     group_by(date) %>%
     mutate(prop = prop.table(n)) %>% 
-    filter(booked_permutation != "1. Neither booked nor occupied")
+    filter(booked_permutation != "0. Neither booked nor occupied")
   
   
   
@@ -36,7 +37,9 @@ room_utilisation_permutation <- function(joined_observations) {
                        fill = booked_permutation)) +
     geom_bar(position = "stack",
              stat = "identity") +
-    scale_fill_brewer(palette = "Spectral")
+    scale_fill_brewer(palette = "Spectral") +
+    scale_y_continuous(labels = scales::percent, limits = c(0,1)) +
+    ggtitle("Room booking and occupancy")
   
 }
 
@@ -133,7 +136,7 @@ room_booking_length_histogram <- function(joined_observations) {
   
   utilisation <- scales::percent(booking_lengths$utilisation / booking_lengths$freq)
   
-
+  
   plot_ly(booking_lengths) %>%
     add_trace(x = ~booking_length, 
               y = ~freq,
@@ -155,7 +158,25 @@ room_booking_length_histogram <- function(joined_observations) {
     layout(xaxis = list(title = "booking length (minutes)"),
            yaxis = list(side = "left", 
                         title = "Number of bookings"),
-           barmode = "overlay")
+           barmode = "overlay",
+           title = "Bookings by length (minutes)")
+  
+  
+}
+
+
+occupancy_through_day <- function(joined_observations) {
+  my_data <- joined_observations %>%
+    mutate(time = strftime(obs_datetime, "%H:%M:%S"),
+           sensor_value_recoded = recode(sensor_value, .missing = "missing", "1" = "occupied", "0" = "unoccupied"))
+  
+  plot_ly(my_data) %>%
+    add_trace(x = ~date,
+              y = ~time,
+              type = "bar",
+              color = ~sensor_value_recoded) %>%
+    layout(yaxis = list(autorange = "reversed"),
+           barmode = "stacked")
   
   
 }

@@ -7,13 +7,13 @@ source("data_cleaning_functions.R")
 source("charting_functions.R")
 
 
-joined_observations <- s3tools::read_using(feather::read_feather("alpha-app-matrixbooking/leeds.feather"))
+joined_observations <- s3tools::read_using(feather::read_feather,"alpha-app-matrixbooking/leeds.feather")
 
 ui <- dashboardPage(
   dashboardHeader(title = "Matrixbooking app"),
   dashboardSidebar(
     sidebarMenu(
-      menuItem("Data Download", tabName = "data_download"),
+      #menuItem("Data Download", tabName = "data_download"),
       menuItem("Report by room", tabName = "by_room"),
       menuItem("Report by building", tabName = "by_building")
     )
@@ -104,6 +104,12 @@ server <- function(input, output, session) {
     
     room_booking_length_histogram(joined_observations %>% filter(roomname == input$room))
   })
+  
+  # change to TRUE when deployed
+  
+  # refreshes connection when grey screened
+  
+  session$allowReconnect(TRUE)
   
 }
 
