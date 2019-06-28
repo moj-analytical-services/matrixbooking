@@ -1,7 +1,7 @@
 library(dplyr)
 library(ggplot2)
 library(scales)
-
+library(tidyr)
 
 
 get_booked_permutation <- function(joined_observations) {
@@ -37,8 +37,8 @@ room_utilisation_permutation <- function(joined_observations) {
 }
 
 get_utilisation_by_date <- function(joined_observations) {
-  joined_observations %>% filter(status != "CANCELLED") %>%
-    group_by(date, roomname, is_booked) %>% 
+  joined_observations %>%
+    group_by(date, roomname) %>% 
     summarise(utilisation = mean(sensor_value, na.rm = T)) %>%
     get_util_cat()
 }
@@ -49,7 +49,10 @@ room_utilisation_by_date <- function(joined_observations, bar_position = 'fill')
   
   utilisation_by_date <- get_utilisation_by_date(joined_observations)
   
-  count_by_cat <- utilisation_by_date %>% group_by(date, util_cat) %>% summarise(count = n())
+  count_by_cat <- utilisation_by_date %>%
+    group_by(date,
+             util_cat) %>%
+    summarise(count = n())
   
   ggplot(data = count_by_cat, 
          mapping = aes(x = date, 
@@ -60,7 +63,38 @@ room_utilisation_by_date <- function(joined_observations, bar_position = 'fill')
     scale_fill_manual(values = c("Effective utilisation" = "coral2",
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
+    scale_y_continuous(labels = scales::percent) +
     ggtitle("Rooms by utilisation")
+}
+
+
+
+
+room_utilisation_by_weekday <- function(joined_observations, bar_position = 'fill') {
+  # Plots the number of bookings that Bar position can either be stack or fill
+  
+  utilisation_by_weekday <- get_utilisation_by_date(joined_observations) %>% 
+    mutate(day = weekdays(date))
+  
+  count_by_cat <- utilisation_by_weekday %>%
+    group_by(day,
+             util_cat) %>%
+    summarise(count = n())
+  
+  weekday <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+  
+  ggplot(data = count_by_cat, 
+         mapping = aes(x = day, 
+                       y = count, 
+                       fill = util_cat)) +
+    geom_bar(position = bar_position, 
+             stat = "identity") + 
+    scale_fill_manual(values = c("Effective utilisation" = "coral2",
+                                 "Under utilised" = "thistle3",
+                                 "Unused" = "powderblue")) +
+    scale_y_continuous(labels = scales::percent) +
+    scale_x_discrete(limits = weekday)  +
+    ggtitle("Rooms by utilisation by weekday")
 }
 
 
@@ -90,6 +124,7 @@ booking_utilisation_by_date <- function(joined_observations, bar_position = 'fil
     scale_fill_manual(values = c("Effective utilisation" = "coral2",
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
+    scale_y_continuous(labels = scales::percent) +
     ggtitle("Bookings by utilisation")
 }
 
@@ -168,16 +203,83 @@ room_booking_length_histogram <- function(joined_observations) {
 
 occupancy_through_day <- function(joined_observations) {
   my_data <- joined_observations %>%
-    mutate(time = strftime(obs_datetime, "%H:%M:%S"),
-           sensor_value_recoded = recode(sensor_value, .missing = "missing", "1" = "occupied", "0" = "unoccupied"))
+    get_booked_permutation() %>%
+    mutate(time = strftime(obs_datetime, "%H:%M:%S")) %>% 
+    filter(booked_permutation != "0. Neither booked nor occupied")
   
   plot_ly(my_data) %>%
     add_trace(x = ~date,
               y = ~time,
-              type = "bar",
-              color = ~sensor_value_recoded) %>%
-    layout(yaxis = list(autorange = "reversed"),
-           barmode = "stacked")
+              type = "scatter",
+              color = ~booked_permutation,
+              colors = c("sandybrown",
+                         "lemonchiffon",
+                         "darkseagreen3"),
+              mode = "markers",
+              symbol = ~booked_permutation,
+              symbols = c('square',
+                          'square',
+                          'square',
+                          'square')) %>%
+    layout(yaxis = list(autorange = "reversed"))
+  
+  
+}
+
+
+get_smoothing_table <- function(joined_observations, smoothing_factor) {
+  
+  weekdays <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+  
+  cat_order <- c("Full Smoothing", "Current Utilisation", "Partial Smoothing")
+  
+  smoothing <- get_utilisation_by_date(joined_observations) %>%
+    filter(util_cat == "Unused") %>%
+    mutate(current_utilisation = 1 - prop) %>%
+    mutate(full_smoothing = mean(current_utilisation)) %>%
+    mutate(partial_smoothing = (full_smoothing * smoothing_factor) + (current_utilisation * (1 - smoothing_factor))) %>%
+    select(day,
+           "Full Smoothing" = full_smoothing, 
+           "Current Utilisation" = current_utilisation,
+           "Partial Smoothing" = partial_smoothing) %>%
+    melt("day") %>%
+    mutate(variable = factor(variable, cat_order))
+}
+
+
+
+
+
+
+closest_colour <- function(r,g,b) {
+  
+  # Ranks the built-in R colours by distance to a given RGB.
+  
+  colour_rgbs <- col2rgb(colours()) %>%
+    t() %>%
+    as_tibble() %>%
+    mutate(colour = colours())
+  
+  colour_rgbs %>% 
+    mutate(d_red = (red - r) ^ 2,
+           d_green = (green - g) ^ 2,
+           d_blue = (blue - b) ^2,
+           d_total = d_red + d_green + d_blue) %>%
+    arrange(d_total)
+  
+  
+}
+
+closest_colour_plot <- function(r,g,b) {
+  
+  chart_data <- closest_colour(r,g,b) %>% head(20)
+  
+  ggplot(chart_data, aes(x = fct_reorder(colour,d_total),
+                         y = max(d_total) - d_total,
+                         fill = colour)) +
+    geom_bar(stat = "identity") +
+    theme(legend.position = "none") +
+    scale_fill_manual(values = chart_data$colour)
   
   
 }

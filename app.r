@@ -39,11 +39,17 @@ ui <- dashboardPage(
                 selectInput(inputId = "room",
                             label = "Select room",
                             choices = sort(unique(joined_observations$roomname))
-                            ),
-                plotlyOutput(outputId = "booking_length_by_room"),
-                plotlyOutput(outputId = "booked_permutation"),
-                plotlyOutput(outputId = "booked_by_occupancy"),
-                plotlyOutput(outputId = "occupancy_by_bookedness")
+                ),
+                tabBox(id = "by_room_tabBox",
+                       tabPanel("bookings_by_length",
+                                plotlyOutput(outputId = "booking_length_by_room")),
+                       tabPanel("throughout the day",
+                                plotlyOutput(outputId = "booked_permutation"),
+                                plotlyOutput(outputId = "permutation_throughout_day")),
+                       tabPanel("bookedness and occupancy",
+                                plotlyOutput(outputId = "booked_by_occupancy"),
+                                plotlyOutput(outputId = "occupancy_by_bookedness"))
+                )
               )
       ),
       
@@ -104,6 +110,12 @@ server <- function(input, output, session) {
     
     room_booking_length_histogram(joined_observations %>% filter(roomname == input$room))
   })
+  
+  
+  output$permutation_throughout_day <- renderPlotly({
+    occupancy_through_day(joined_observations %>% filter(roomname == input$room))
+  })
+  
   
   # change to TRUE when deployed
   
