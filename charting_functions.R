@@ -15,17 +15,21 @@ get_booked_permutation <- function(joined_observations) {
     )
 }
 
-room_utilisation_permutation <- function(joined_observations) {
+room_utilisation_permutation <- function(joined_observations, varname) {
+  
+  expr <- sym(varname)
+  
+  
   utilisation_by_permutation <- get_booked_permutation(joined_observations) %>%
-    count(booked_permutation, date) %>%
-    group_by(date) %>%
+    count(booked_permutation, !!expr) %>%
+    group_by(!!expr) %>%
     mutate(prop = prop.table(n)) %>% 
     filter(booked_permutation != "0. Neither booked nor occupied")
   
   
   
   ggplot(data = utilisation_by_permutation,
-         mapping = aes(x = date,
+         mapping = aes(x = !!expr,
                        y = prop,
                        fill = booked_permutation)) +
     geom_bar(position = "stack",
@@ -40,7 +44,8 @@ get_utilisation_by_date <- function(joined_observations) {
   joined_observations %>%
     group_by(date, roomname) %>% 
     summarise(utilisation = mean(sensor_value, na.rm = T)) %>%
-    get_util_cat()
+    get_util_cat() %>%
+    ungroup()
 }
 
 
@@ -168,7 +173,7 @@ room_booking_length_histogram <- function(joined_observations) {
     summarise(freq = n(),
               utilisation = sum(sensor_value/booking_length)) %>%
     mutate(freq = freq/booking_length, 
-           booking_length = booking_length * 10)
+           booking_length = booking_length / 6)
   
   utilisation <- scales::percent(booking_lengths$utilisation / booking_lengths$freq)
   
@@ -191,11 +196,11 @@ room_booking_length_histogram <- function(joined_observations) {
               text = paste0("Utilisation: ",utilisation),
               name = "Occupied time",
               hoverinfo = "text") %>%
-    layout(xaxis = list(title = "booking length (minutes)"),
+    layout(xaxis = list(title = "booking length (hours)"),
            yaxis = list(side = "left", 
                         title = "Number of bookings"),
            barmode = "overlay",
-           title = "Bookings by length (minutes)")
+           title = "Bookings by length (hours)")
   
   
 }
@@ -204,15 +209,15 @@ room_booking_length_histogram <- function(joined_observations) {
 occupancy_through_day <- function(joined_observations) {
   my_data <- joined_observations %>%
     get_booked_permutation() %>%
-    mutate(time = strftime(obs_datetime, "%H:%M:%S")) %>% 
-    filter(booked_permutation != "0. Neither booked nor occupied")
+    mutate(time = strftime(obs_datetime, "%H:%M:%S"))
   
   plot_ly(my_data) %>%
     add_trace(x = ~date,
               y = ~time,
               type = "scatter",
               color = ~booked_permutation,
-              colors = c("sandybrown",
+              colors = c("grey",
+                        "sandybrown",
                          "lemonchiffon",
                          "darkseagreen3"),
               mode = "markers",
@@ -233,22 +238,58 @@ get_smoothing_table <- function(joined_observations, smoothing_factor) {
   
   cat_order <- c("Full Smoothing", "Current Utilisation", "Partial Smoothing")
   
-  smoothing <- get_utilisation_by_date(joined_observations) %>%
+  get_utilisation_by_date(joined_observations) %>%
+    mutate(day = weekdays(date)) %>%
+    count(util_cat, day) %>%
+    group_by(day) %>%
+    mutate(prop = prop.table(n)) %>%
     filter(util_cat == "Unused") %>%
-    mutate(current_utilisation = 1 - prop) %>%
-    mutate(full_smoothing = mean(current_utilisation)) %>%
-    mutate(partial_smoothing = (full_smoothing * smoothing_factor) + (current_utilisation * (1 - smoothing_factor))) %>%
+    ungroup() %>%
+    mutate(current_utilisation = 1 - prop,
+           full_smoothing = mean(current_utilisation),
+           partial_smoothing = (full_smoothing * smoothing_factor) +
+             (current_utilisation * (1 - smoothing_factor))) %>%
     select(day,
            "Full Smoothing" = full_smoothing, 
            "Current Utilisation" = current_utilisation,
            "Partial Smoothing" = partial_smoothing) %>%
-    melt("day") %>%
+    gather(variable, value, -day) %>%
     mutate(variable = factor(variable, cat_order))
 }
 
 
+smoothing_chart <- function(joined_observations, smoothing_factor) {
+  
+  
+  weekdays <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+  
+  cat_order <- c("Full Smoothing", "Current Utilisation", "Partial Smoothing")
+  
+  smoothing <- get_smoothing_table(joined_observations, smoothing_factor)
+  
+  
+  ggplot(smoothing,
+         aes(x = day, y = value, fill = variable)) + 
+    geom_bar(stat = "identity", position = "dodge") + 
+    ggtitle("Required Desk Allocation - Smoothing Assumptions") + 
+    scale_x_discrete(limits = weekdays) + 
+    theme(legend.position = "top") + 
+    theme(plot.title = element_text(hjust = 0.5)) + 
+    expand_limits(y = 0) + 
+    scale_y_continuous(expand = c(0, 0),labels = percent) +
+    coord_cartesian(ylim = c(0, 1)) + 
+    labs(y="Desk Utilisation",fill="") + 
+    scale_fill_brewer(palette = "Accent")
+  
+}
 
-
+occupancy_by_sensor <- function(joined_observations) {
+  joined_observations %>%
+    group_by(surveydeviceid) %>%
+    summarise(occupied_hours = sum(sensor_value)/6,
+              booked_hours = sum(is_booked)/6,
+              sample_hours = n()/6)
+}
 
 
 closest_colour <- function(r,g,b) {
