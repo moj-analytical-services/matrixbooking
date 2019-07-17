@@ -2,6 +2,7 @@ library(dplyr)
 library(ggplot2)
 library(scales)
 library(tidyr)
+library(janitor)
 
 
 get_booked_permutation <- function(joined_observations) {
@@ -36,6 +37,7 @@ room_utilisation_permutation <- function(joined_observations, varname) {
              stat = "identity") +
     scale_fill_brewer(palette = "Spectral") +
     scale_y_continuous(labels = scales::percent, limits = c(0,1)) +
+    theme(axis.text.x = element_text(angle = 45)) +
     ggtitle("Room booking and occupancy")
   
 }
@@ -163,31 +165,34 @@ occupancy_during_booked_time <- function(joined_observations) {
 room_booking_length_histogram <- function(joined_observations) {
   
   # Switched to using plot_ly, because ggplotly produced strange results.
-  # Should I port it?
+  # Should I port everything else?
   
   booking_lengths <- joined_observations %>%
     filter(is_booked == 1) %>%
     group_by(id) %>%
-    mutate(booking_length = sum(is_booked)) %>%
+    mutate(booked_hours = is_booked/6,
+           booking_length = sum(booked_hours)) %>%
     group_by(booking_length) %>%
-    summarise(freq = n(),
-              utilisation = sum(sensor_value/booking_length)) %>%
-    mutate(freq = freq/booking_length, 
-           booking_length = booking_length / 6)
+    summarise(booking_hours = sum(booked_hours),
+              utilisation = sum(sensor_value)/6) %>%
+    mutate(freq = booking_hours/booking_length)
   
-  utilisation <- scales::percent(booking_lengths$utilisation / booking_lengths$freq)
+  utilisation <- scales::percent(booking_lengths$utilisation / booking_lengths$booking_hours)
   
   
   plot_ly(booking_lengths) %>%
     add_trace(x = ~booking_length, 
-              y = ~freq,
+              y = ~booking_hours,
               type = "bar",
               yaxis = "y1",
-              name = "Number of bookings",
-              text = paste0("Booking length: ",
+              name = "booking hours",
+              text = paste0("</br> Booking length (hours): ",
                             booking_lengths$booking_length,
-                            "\n",
-                            "Number of bookings: ",
+                            "</br> Total hours booked: ",
+                            booking_lengths$booking_hours,
+                            "</br> Of which was occupied: ",
+                            booking_lengths$utilisation,
+                            "</br> Number of bookings: ",
                             booking_lengths$freq),
               hoverinfo = "text") %>%
     add_trace(x = ~booking_length,
@@ -198,10 +203,22 @@ room_booking_length_histogram <- function(joined_observations) {
               hoverinfo = "text") %>%
     layout(xaxis = list(title = "booking length (hours)"),
            yaxis = list(side = "left", 
-                        title = "Number of bookings"),
+                        title = "Total hours"),
            barmode = "overlay",
-           title = "Bookings by length (hours)")
+           title = "Bookings by length (hours)",
+           hovermode = "compare")
   
+  
+}
+
+permutation_summary <- function(joined_observations) {
+  
+  permutation_summary <- joined_observations %>%
+    get_booked_permutation() %>%
+    group_by(booked_permutation) %>%
+    summarise(working_hours = n()/6) %>%
+    mutate(proportion = scales::percent(prop.table(working_hours))) %>%
+    adorn_totals()
   
 }
 

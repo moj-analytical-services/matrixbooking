@@ -60,6 +60,11 @@ ui <- dashboardPage(
                        tabPanel("bookedness and occupancy",
                                 plotlyOutput(outputId = "booked_by_occupancy"),
                                 plotlyOutput(outputId = "occupancy_by_bookedness"))
+                ),
+                tabBox(id = "room_data_tabBox",
+                       tabPanel("booking permutation summary",
+                                dataTableOutput(outputId = "permutation_table_room"))
+                       
                 )
               )
       ),
@@ -90,9 +95,13 @@ ui <- dashboardPage(
                                                         "devicetype"),
                                             selected = "date"),
                                 plotlyOutput(outputId = "booked_permutation_building"))
+                ),
+                
+                tabBox(id = "building_data_tabBox",
+                       tabPanel("booking permutation summary",
+                                dataTableOutput(outputId = "permutation_table_building"))
+                       
                 )
-                
-                
               )
       )
       
@@ -102,11 +111,18 @@ ui <- dashboardPage(
 
 server <- function(input, output, session) {
   
+  
+  # create reactive data object -----------------------------------------------------------
   joined_observations <- reactive({
     my_data %>%
-    filter(obs_datetime >= input$date_filter[1],
-           obs_datetime <= paste0(input$date_filter[2], " 23:50"))
+      filter(obs_datetime >= input$date_filter[1],
+             obs_datetime <= paste0(input$date_filter[2], " 23:50"))
   })
+  
+  
+  
+  # by room charts ----------------------------------------------------------
+  
   
   output$booked_by_occupancy <- renderPlotly({
     bookings_during_occupied_time(joined_observations() %>% filter(roomname == input$room))
@@ -115,6 +131,34 @@ server <- function(input, output, session) {
   output$occupancy_by_bookedness <- renderPlotly({
     occupancy_during_booked_time(joined_observations() %>% filter(roomname == input$room))
   })
+  
+  output$booked_permutation_room <- renderPlotly({
+    room_utilisation_permutation(joined_observations() %>%
+                                   filter(roomname == input$room), "date")
+    
+  })
+  
+  output$booking_length_by_room <- renderPlotly({
+    
+    room_booking_length_histogram(joined_observations() %>%
+                                    filter(roomname == input$room))
+  })
+  
+  output$permutation_table_room <- renderDataTable({
+    permutation_summary(joined_observations() %>%
+                          filter(roomname == input$room))
+  })
+  
+  output$permutation_throughout_day <- renderPlotly({
+    occupancy_through_day(joined_observations() %>%
+                            filter(roomname == input$room))
+  })
+  
+  
+  # by building charts ------------------------------------------------------
+  
+  
+  
   
   output$daily_bookings_by_occupancy_fill <- renderPlotly({
     booking_utilisation_by_date(joined_observations() %>% filter(devicetype %in% input$room_type))
@@ -132,26 +176,6 @@ server <- function(input, output, session) {
     room_utilisation_by_date(joined_observations() %>%
                                filter(devicetype %in% input$room_type))
   })
-  
-  
-  output$booked_permutation_room <- renderPlotly({
-    room_utilisation_permutation(joined_observations() %>%
-                                   filter(roomname == input$room), "date")
-    
-  })
-  
-  output$booking_length_by_room <- renderPlotly({
-    
-    room_booking_length_histogram(joined_observations() %>%
-                                    filter(roomname == input$room))
-  })
-  
-  
-  output$permutation_throughout_day <- renderPlotly({
-    occupancy_through_day(joined_observations() %>%
-                            filter(roomname == input$room))
-  })
-  
   output$weekday_rooms_by_occupancy <- renderPlotly({
     room_utilisation_by_weekday(joined_observations() %>%
                                   filter(devicetype %in% input$room_type))
@@ -162,7 +186,13 @@ server <- function(input, output, session) {
   })
   
   output$booked_permutation_building <- renderPlotly({
-    room_utilisation_permutation(joined_observations(), input$selected_column)
+    room_utilisation_permutation(joined_observations() %>% filter(devicetype %in% input$room_type),
+                                 input$selected_column)
+  })
+  
+  output$permutation_table_building <- renderDataTable({
+    permutation_summary(joined_observations() %>%
+                          filter(devicetype %in% input$room_type))
   })
   
   

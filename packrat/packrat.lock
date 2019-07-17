@@ -297,6 +297,12 @@ Version: 1.4.0
 Hash: 62d62d3ffcc9a34411b6e35a813f72dd
 Requires: R6, curl, jsonlite, mime, openssl
 
+Package: janitor
+Source: CRAN
+Version: 1.2.0
+Hash: 6faccd8aa48483db3f7342ab28491d32
+Requires: dplyr, magrittr, purrr, rlang, snakecase, tidyr
+
 Package: jsonlite
 Source: CRAN
 Version: 1.6
@@ -550,6 +556,12 @@ Source: CRAN
 Version: 0.7.1
 Hash: 9ff3e3d1aa83d9ae9b75c6f31e982aa6
 Requires: htmltools, promises, shiny
+
+Package: snakecase
+Source: CRAN
+Version: 0.11.0
+Hash: 061f05fc025f841f0cdc94fd0076abf0
+Requires: stringi, stringr
 
 Package: sourcetools
 Source: CRAN
