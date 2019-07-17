@@ -15,7 +15,7 @@ date_list <- lubridate::date(my_data$obs_datetime)
 
 
 ui <- dashboardPage(
-  dashboardHeader(title = "Matrixbooking app v0.0.2"),
+  dashboardHeader(title = "Matrixbooking app v0.0.4"),
   dashboardSidebar(
     sidebarMenu(
       dateRangeInput(inputId = "date_filter",
@@ -36,7 +36,7 @@ ui <- dashboardPage(
               fluidRow(
                 selectInput(inputId = "download_building", 
                             label = "Select building",
-                            choices = unique(joined_observations$building)),
+                            choices = unique(my_data$building)),
                 
                 dateRangeInput(inputId = "download_date_range", 
                                label = "Select time period to download"),
@@ -49,7 +49,7 @@ ui <- dashboardPage(
               fluidRow(
                 selectInput(inputId = "room",
                             label = "Select room",
-                            choices = sort(unique(joined_observations$roomname))
+                            choices = sort(unique(my_data$roomname))
                 ),
                 tabBox(id = "by_room_tabBox",
                        tabPanel("bookings by length",
@@ -68,8 +68,8 @@ ui <- dashboardPage(
               fluidRow(
                 pickerInput(inputId = "room_type",
                             label = "Select Room Type(s)",
-                            choices = sort(unique(joined_observations$devicetype)),
-                            selected = unique(joined_observations$devicetype),
+                            choices = sort(unique(my_data$devicetype)),
+                            selected = unique(my_data$devicetype),
                             options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
                             multiple = TRUE),
                 tabBox(id = "by_building_tabBox",
