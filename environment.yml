@@ -46,24 +46,24 @@ dependencies:
   - gxx_linux-64=7.3.0=h553295d_7
   - harfbuzz=2.4.0=h37c48d4_1
   - hdf4=4.2.13=h9a582f1_1002
-  - hdf5=1.10.5=nompi_h3c11f04_1100
+  - hdf5=1.10.4=nompi_h3c11f04_1106
   - icu=58.2=hf484d3e_1000
   - idna=2.8=py37_1000
   - intel-openmp=2019.4=243
   - jmespath=0.9.4=py_0
   - jpeg=9c=h14c3975_1001
   - json-c=0.13.1=h14c3975_1001
-  - kealib=1.4.10=h58c409b_1005
+  - kealib=1.4.10=h1978553_1003
   - krb5=1.16.3=h05b26f9_1001
   - libarchive=3.3.3=hb44662c_1005
   - libblas=3.8.0=10_openblas
   - libcblas=3.8.0=10_openblas
   - libcurl=7.65.3=hda55be3_0
-  - libdap4=3.19.1=hd48c02d_1000
+  - libdap4=3.20.2=hd48c02d_1000
   - libedit=3.1.20170329=hf8c457e_1001
   - libffi=3.2.1=he1b5a44_1006
   - libgcc-ng=9.1.0=hdf63c60_0
-  - libgdal=2.4.2=h0845e09_2
+  - libgdal=2.4.2=h04a3d72_6
   - libgfortran-ng=7.3.0=hdf63c60_0
   - libiconv=1.15=h516909a_1005
   - libjpeg-turbo=2.0.2=h14c3975_0
@@ -71,7 +71,7 @@ dependencies:
   - liblapack=3.8.0=10_openblas
   - liblapacke=3.8.0=10_openblas
   - liblief=0.9.0=hf8a498c_1
-  - libnetcdf=4.6.2=h056eaf5_1002
+  - libnetcdf=4.6.2=hbdf4f91_1001
   - libopenblas=0.3.6=h6e990d7_4
   - libpng=1.6.37=hed695b0_0
   - libpq=11.4=hd9ab2ff_2
@@ -307,6 +307,6 @@ dependencies:
   - zlib=1.2.11=h516909a_1005
   - zstd=1.4.0=h3b9ef0a_0
   - pip:
-    - numpy==1.15.4
+    - numpy==1.16.4
     - pydbtools==1.0.1
 
