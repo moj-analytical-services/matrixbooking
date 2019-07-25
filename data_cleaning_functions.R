@@ -67,8 +67,9 @@ get_joined_df <- function(full_occupeye_df, sensorised_bookings) {
            date = date(obs_datetime))
 }
 
+
 get_util_cat <- function(joined_observations) {
-  
+  # This actually mutates a summarised datset, rather than joined observations. To fix at some point  
   level_order <- c("Unused", "Under utilised", "Effective utilisation")
   
   joined_observations %>%
@@ -77,4 +78,15 @@ get_util_cat <- function(joined_observations) {
                                 utilisation >= 0.5 ~ "Effective utilisation")) %>%
     mutate(util_cat = factor(util_cat, levels = level_order))
   
+}
+
+add_created_to_meeting <- function(bookings) {
+  
+  bookings %>%
+    mutate(created_to_meeting = difftime(time_from, created, units = "days"))
+}
+
+add_created_to_cancelled <- function(bookings) {
+  bookings %>%
+    mutate(created_to_cancelled = difftime(cancelled_datetime, created, units = "days"))
 }

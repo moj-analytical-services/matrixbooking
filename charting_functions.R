@@ -25,7 +25,7 @@ room_utilisation_permutation <- function(joined_observations, varname) {
     count(booked_permutation, !!expr) %>%
     group_by(!!expr) %>%
     mutate(prop = prop.table(n)) %>% 
-    filter(booked_permutation != "0. Neither booked nor occupied")
+    dplyr::filter(booked_permutation != "0. Neither booked nor occupied")
   
   
   
@@ -108,10 +108,10 @@ room_utilisation_by_weekday <- function(joined_observations, bar_position = 'fil
 get_utilisation_by_date_and_booking <- function(joined_observations) {
   # counts the number of non-cancelled bookings by util_cat and day
   
-  joined_observations %>% filter(status != "CANCELLED") %>%
+  joined_observations %>% dplyr::filter(status != "CANCELLED") %>%
     group_by(id, date, roomname, is_booked) %>% 
     summarise(utilisation = mean(sensor_value, na.rm = T)) %>% 
-    filter(!is.na(id)) %>%
+    dplyr::filter(!is.na(id)) %>%
     get_util_cat()
 }
 
@@ -139,7 +139,7 @@ booking_utilisation_by_date <- function(joined_observations, bar_position = 'fil
 
 bookings_during_occupied_time <- function(joined_observations) {
   data <- joined_observations %>%
-    filter(sensor_value == 1)
+    dplyr::filter(sensor_value == 1)
   
   ggplot(data = data, aes(x = date)) +
     stat_summary(aes(y = is_booked), 
@@ -152,7 +152,7 @@ bookings_during_occupied_time <- function(joined_observations) {
 
 occupancy_during_booked_time <- function(joined_observations) {
   data <- joined_observations %>%
-    filter(is_booked == 1)
+    dplyr::filter(is_booked == 1)
   
   ggplot(data = data, aes(x = date)) +
     stat_summary(aes(y = sensor_value), 
@@ -168,7 +168,7 @@ room_booking_length_histogram <- function(joined_observations) {
   # Should I port everything else?
   
   booking_lengths <- joined_observations %>%
-    filter(is_booked == 1) %>%
+    dplyr::filter(is_booked == 1) %>%
     group_by(id) %>%
     mutate(booked_hours = is_booked/6,
            booking_length = sum(booked_hours)) %>%
@@ -260,7 +260,7 @@ get_smoothing_table <- function(joined_observations, smoothing_factor) {
     count(util_cat, day) %>%
     group_by(day) %>%
     mutate(prop = prop.table(n)) %>%
-    filter(util_cat == "Unused") %>%
+    dplyr::filter(util_cat == "Unused") %>%
     ungroup() %>%
     mutate(current_utilisation = 1 - prop,
            full_smoothing = mean(current_utilisation),
@@ -338,6 +338,44 @@ closest_colour_plot <- function(r,g,b) {
     geom_bar(stat = "identity") +
     theme(legend.position = "none") +
     scale_fill_manual(values = chart_data$colour)
+}
+
+bookings_created_to_meeting_histogram <- function(bookings) {
+  bookings %>%
+    add_created_to_meeting() %>%
+    ggplot(aes(x = created_to_meeting, fill = fct_rev(status))) +
+    geom_histogram(alpha=0.5, position="identity", binwidth = 1) +
+    labs(x = "Days between creating the booking and start of meeting")
+}
+
+cancelled_bookings_histogram <- function(cancelled_bookings) {
+  
+  cancelled_bookings %>%
+    add_created_to_meeting() %>%
+    ggplot(aes(x = created_to_meeting, fill = fct_rev(status_reason))) +
+    geom_histogram(alpha=0.5, position="identity", binwidth = 1)
+  
+}
+
+start_to_cancelled_bookings_histogram <- function(cancelled_bookings) {
+  
+  cancelled_bookings %>%
+    add_created_to_cancelled() %>%
+    ggplot(aes(x = created_to_cancelled, fill = fct_rev(status_reason))) +
+    geom_histogram(alpha=0.5, position="identity", binwidth = 1)
+  
+}
+
+cancelled_bookings_by_day <- function(cancelled_bookings) {
+  
+  bookings %>%
+    mutate(start_date = as_date(time_from),
+           created_date = as_date(created)) %>%
+    group_by(created_date) %>%
+    count() %>%
+    plot_ly(x = ~created_date,
+            y = ~n,
+            type = 'bar')
   
   
 }
