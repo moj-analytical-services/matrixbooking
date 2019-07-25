@@ -10,11 +10,12 @@ source("data_cleaning_functions.R")
 source("charting_functions.R")
 
 
-
 my_data <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/leeds.feather")
+print("My_data loaded")
 bookings <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/bookings.feather")
+print("bookings loaded")
 locations <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/locations.feather")
-
+print("locations loaded")
 date_list <- lubridate::date(my_data$obs_datetime)
 
 
@@ -74,14 +75,16 @@ ui <- dashboardPage(
                 tabBox(id = "room_narrative_tabBox",
                        tabPanel("booking permutation summary",
                                 dataTableOutput(outputId = "permutation_table_room"))
-                ),
-                fluidRow(
-                  tabBox(id = "room_data_tabBox",
-                         tabPanel("bookings data",
-                                  dataTableOutput(outputId = "bookings_data")),
-                         tabPanel("locations data",
-                                  dataTableOutput(outputId = "locations_data"))
-                  )
+                )
+
+              ),
+              fluidRow(
+                tabBox(id = "room_data_tabBox",
+                       width = 9,
+                       tabPanel("bookings data",
+                                dataTableOutput(outputId = "bookings_data")),
+                       tabPanel("locations data",
+                                dataTableOutput(outputId = "locations_data"))
                 )
               )
       ),
@@ -113,9 +116,9 @@ ui <- dashboardPage(
                                             selected = "date"),
                                 plotlyOutput(outputId = "booked_permutation_building")),
                        tabPanel("Time to booking",
-                                plotlyOutput(outputId = "room_booking_histogram")),
+                                plotlyOutput(outputId = "building_booking_histogram")),
                        tabPanel("Time to booking (cancellations)",
-                                plotlyOutput(outputId = "room_cancellations_histogram")),
+                                plotlyOutput(outputId = "building_cancellations_histogram")),
                        tabPanel("Time from booking to cancellation",
                                 plotlyOutput(outputId = "building_time_to_cancellation_histogram"))
                 ),
@@ -153,7 +156,6 @@ server <- function(input, output, session) {
   })
   
   # by room charts ----------------------------------------------------------
-  
   
   output$booked_by_occupancy <- renderPlotly({
     bookings_during_occupied_time(room_observations())
