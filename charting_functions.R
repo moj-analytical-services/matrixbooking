@@ -3,7 +3,7 @@ library(ggplot2)
 library(scales)
 library(tidyr)
 library(janitor)
-
+library(forcats)
 
 get_booked_permutation <- function(joined_observations) {
   joined_observations %>% 

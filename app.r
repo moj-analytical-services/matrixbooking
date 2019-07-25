@@ -177,14 +177,14 @@ server <- function(input, output, session) {
   
   output$room_booking_histogram <- renderPlotly({
     bookings_created_to_meeting_histogram(bookings %>%
-                                            filter(location_id %in% unique(room_observations()$location)
+                                            dplyr::filter(location_id %in% unique(room_observations()$location)
                                             )
     )
   })
   
   output$room_cancellations_histogram <- renderPlotly({
     cancelled_bookings_histogram(bookings %>%
-                                   filter(status == "CANCELLED",
+                                   dplyr::filter(status == "CANCELLED",
                                           location_id %in% unique(room_observations()$location)
                                    )
     )
@@ -192,7 +192,7 @@ server <- function(input, output, session) {
   
   output$room_time_to_cancellation_histogram <- renderPlotly({
     start_to_cancelled_bookings_histogram(bookings %>%
-                                            filter(status == "CANCELLED",
+                                            dplyr::filter(status == "CANCELLED",
                                                    location_id %in% unique(room_observations()$location)
                                             )
     )
@@ -249,14 +249,14 @@ server <- function(input, output, session) {
   
   output$building_booking_histogram <- renderPlotly({
     bookings_created_to_meeting_histogram(bookings %>%
-                                            filter(location_id %in% unique(building_observations()$location)
+                                            dplyr::filter(location_id %in% unique(building_observations()$location)
                                             )
     )
   })
   
   output$building_cancellations_histogram <- renderPlotly({
     cancelled_bookings_histogram(bookings %>%
-                                   filter(status == "CANCELLED",
+                                   dplyr::filter(status == "CANCELLED",
                                           location_id %in% unique(building_observations()$location)
                                    )
     )
@@ -264,7 +264,7 @@ server <- function(input, output, session) {
   
   output$building_time_to_cancellation_histogram <- renderPlotly({
     start_to_cancelled_bookings_histogram(bookings %>%
-                                            filter(status == "CANCELLED",
+                                            dplyr::filter(status == "CANCELLED",
                                                    location_id %in% unique(building_observations()$location)
                                             )
     )

@@ -7,7 +7,7 @@ convert_bookings_to_sensors <- function(bookings) {
     rowwise() %>% 
     mutate(obs_booked_datetime = list(seq(time_from, time_to, by = "10 mins"))) %>% 
     unnest() %>%
-    filter(obs_booked_datetime != time_to)
+    dplyr::filter(obs_booked_datetime != time_to)
   
 }
 
@@ -31,7 +31,7 @@ in_time_range <- function(datetime_column, start_time, end_time) {
 
 filter_time_range <- function(df, start_time, end_time) {
   df %>%
-    filter(in_time_range(obs_datetime, start_time, end_time))
+    dplyr::filter(in_time_range(obs_datetime, start_time, end_time))
 }
 
 fix_bad_sensor_observations <- function(df) {
@@ -46,8 +46,8 @@ remove_non_business_days <- function(df) {
   bank_holidays <- bank_holidays$`england-and-wales`$events
   
   df %>%
-    filter(!(date(obs_datetime) %in% as.Date(bank_holidays$date))) %>% 
-    filter(!(weekdays(date(obs_datetime)) %in% c("Saturday", "Sunday")))
+    dplyr::filter(!(date(obs_datetime) %in% as.Date(bank_holidays$date))) %>% 
+    dplyr::filter(!(weekdays(date(obs_datetime)) %in% c("Saturday", "Sunday")))
 }
 
 get_full_occupeye_df <- function(occupeye_df, sensors) {
