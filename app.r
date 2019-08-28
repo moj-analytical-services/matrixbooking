@@ -76,7 +76,7 @@ ui <- dashboardPage(
                        tabPanel("booking permutation summary",
                                 dataTableOutput(outputId = "permutation_table_room"))
                 )
-
+                
               ),
               fluidRow(
                 tabBox(id = "room_data_tabBox",
@@ -101,7 +101,10 @@ ui <- dashboardPage(
                        tabPanel("room usage by date",
                                 plotlyOutput(outputId = "daily_rooms_by_occupancy")),
                        tabPanel("room usage by weekday",
-                                plotlyOutput(outputId = "weekday_rooms_by_occupancy")),
+                                plotlyOutput(outputId = "weekday_rooms_by_occupancy"),
+                                plotlyOutput(outputId = "bookings_heatmap"),
+                                plotlyOutput(outputId = "occupancy_heatmap"),
+                                plotlyOutput(outputId = "weekday_throughout_day")),
                        tabPanel("smoothing",
                                 plotlyOutput(outputId = "smoothing_chart")),
                        tabPanel("Bookings by utilisation",
@@ -170,6 +173,7 @@ server <- function(input, output, session) {
     
   })
   
+  
   output$booking_length_by_room <- renderPlotly({
     
     room_booking_length_histogram(room_observations())
@@ -185,7 +189,7 @@ server <- function(input, output, session) {
   output$room_cancellations_histogram <- renderPlotly({
     cancelled_bookings_histogram(bookings %>%
                                    dplyr::filter(status == "CANCELLED",
-                                          location_id %in% unique(room_observations()$location)
+                                                 location_id %in% unique(room_observations()$location)
                                    )
     )
   })
@@ -193,7 +197,7 @@ server <- function(input, output, session) {
   output$room_time_to_cancellation_histogram <- renderPlotly({
     start_to_cancelled_bookings_histogram(bookings %>%
                                             dplyr::filter(status == "CANCELLED",
-                                                   location_id %in% unique(room_observations()$location)
+                                                          location_id %in% unique(room_observations()$location)
                                             )
     )
   })
@@ -214,6 +218,9 @@ server <- function(input, output, session) {
   output$locations_data <- renderDataTable({
     DT::datatable(locations, filter = list(position = 'top', clear = FALSE))
   })
+  
+  
+  
   
   # by building charts ------------------------------------------------------
   
@@ -257,7 +264,7 @@ server <- function(input, output, session) {
   output$building_cancellations_histogram <- renderPlotly({
     cancelled_bookings_histogram(bookings %>%
                                    dplyr::filter(status == "CANCELLED",
-                                          location_id %in% unique(building_observations()$location)
+                                                 location_id %in% unique(building_observations()$location)
                                    )
     )
   })
@@ -265,13 +272,26 @@ server <- function(input, output, session) {
   output$building_time_to_cancellation_histogram <- renderPlotly({
     start_to_cancelled_bookings_histogram(bookings %>%
                                             dplyr::filter(status == "CANCELLED",
-                                                   location_id %in% unique(building_observations()$location)
+                                                          location_id %in% unique(building_observations()$location)
                                             )
     )
   })
   
   output$permutation_table_building <- renderDataTable({
     permutation_summary(building_observations())
+  })
+  
+  output$bookings_heatmap <- renderPlotly({
+    time_of_day_heatmap(building_observations(), "is_booked")
+  })
+  
+  output$occupancy_heatmap <- renderPlotly({
+    time_of_day_heatmap(building_observations(), "sensor_value")
+  })
+  
+  output$weekday_throughout_day <- renderPlotly({
+    time_of_day_bar(building_observations())
+    
   })
   
   

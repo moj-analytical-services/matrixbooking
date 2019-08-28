@@ -90,3 +90,8 @@ add_created_to_cancelled <- function(bookings) {
   bookings %>%
     mutate(created_to_cancelled = difftime(cancelled_time, created, units = "days"))
 }
+
+add_cancelled_to_meeting <- function(bookings) {
+  bookings %>%
+    mutate(cancelled_to_meeting = difftime(time_from, cancelled_time, units = "days"))
+}

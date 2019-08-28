@@ -228,22 +228,20 @@ occupancy_through_day <- function(joined_observations) {
     get_booked_permutation() %>%
     mutate(time = strftime(obs_datetime, "%H:%M:%S"))
   
-  plot_ly(my_data) %>%
-    add_trace(x = ~date,
-              y = ~time,
-              type = "scatter",
-              color = ~booked_permutation,
-              colors = c("grey",
+  category_colours <- c("grey",
                         "sandybrown",
-                         "lemonchiffon",
-                         "darkseagreen3"),
-              mode = "markers",
-              symbol = ~booked_permutation,
-              symbols = c('square',
-                          'square',
-                          'square',
-                          'square')) %>%
-    layout(yaxis = list(autorange = "reversed"))
+                        "lemonchiffon",
+                        "darkseagreen3")
+  
+  
+  my_plot <- ggplot(my_data,
+                    aes(x = date,
+                        y = fct_rev(time),
+                        fill = booked_permutation)) +
+    geom_tile() +
+    scale_fill_manual(values = category_colours)
+  
+  ggplotly(my_plot)
   
   
 }
@@ -343,7 +341,7 @@ closest_colour_plot <- function(r,g,b) {
 bookings_created_to_meeting_histogram <- function(bookings) {
   bookings %>%
     add_created_to_meeting() %>%
-    ggplot(aes(x = created_to_meeting, fill = fct_rev(status))) +
+    ggplot(aes(x = created_to_meeting, fill = status)) +
     geom_histogram(alpha=0.5, position="identity", binwidth = 1) +
     labs(x = "Days between creating the booking and start of meeting")
 }
@@ -352,7 +350,7 @@ cancelled_bookings_histogram <- function(cancelled_bookings) {
   
   cancelled_bookings %>%
     add_created_to_meeting() %>%
-    ggplot(aes(x = created_to_meeting, fill = fct_rev(status_reason))) +
+    ggplot(aes(x = created_to_meeting, fill = status_reason)) +
     geom_histogram(alpha=0.5, position="identity", binwidth = 1)
   
 }
@@ -361,7 +359,15 @@ start_to_cancelled_bookings_histogram <- function(cancelled_bookings) {
   
   cancelled_bookings %>%
     add_created_to_cancelled() %>%
-    ggplot(aes(x = created_to_cancelled, fill = fct_rev(status_reason))) +
+    ggplot(aes(x = created_to_cancelled, fill = status_reason)) +
+    geom_histogram(alpha=0.5, position="identity", binwidth = 1)
+  
+}
+
+cancelled_to_meeting_histogram <- function(cancelled_bookings) {
+  cancelled_bookings %>%
+    add_cancelled_to_meeting() %>%
+    ggplot(aes(x = cancelled_to_meeting, fill = status_reason)) +
     geom_histogram(alpha=0.5, position="identity", binwidth = 1)
   
 }
@@ -370,7 +376,7 @@ cancelled_bookings_by_day <- function(cancelled_bookings) {
   
   bookings %>%
     mutate(start_date = as_date(time_from),
-           created_date = as_date(created)) %>%
+           created_date = as_date(cancelled_time)) %>%
     group_by(created_date) %>%
     count() %>%
     plot_ly(x = ~created_date,
@@ -378,4 +384,66 @@ cancelled_bookings_by_day <- function(cancelled_bookings) {
             type = 'bar')
   
   
+}
+
+time_of_day_heatmap <- function(joined_observations, varname) {
+  
+  expr <- sym(varname)
+  
+  weekdays <- c("Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday")
+  
+  data <- joined_observations %>%
+    mutate(time_of_day = strftime(obs_datetime, format="%H:%M"),
+           weekday = weekdays(obs_datetime)) %>%
+    group_by(weekday, time_of_day) %>%
+    summarise(count = sum(!!expr, na.rm = T))
+  
+  chart <- ggplot(data,
+                  aes(y = factor(weekday,
+                                 levels = rev(weekdays)),
+                      x = hm(time_of_day))) +
+    geom_tile(aes(fill = count)) +
+    scale_x_time() +
+    scale_fill_gradient2(low = "#f1dfda", high = "#9b0101") +
+    labs(title = glue("heatmap of {varname} by weekday"),
+         x = "Time of day",
+         y = "Weekday")
+  
+  ggplotly(chart)
+}
+
+time_of_day_bar <- function(joined_observations) {
+  
+  
+  
+  weekdays <- c("Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday")
+  
+  data <- joined_observations %>%
+    mutate(time_of_day = strftime(obs_datetime, format="%H:%M"),
+           weekday = weekdays(obs_datetime)) %>%
+    group_by(weekday, time_of_day) %>%
+    summarise(booked = mean(is_booked, na.rm = T),
+              occupied = mean(sensor_value, na.rm = T)) %>%
+    gather(key = "variable", value = "value", booked, occupied)
+  
+  chart <- ggplot(data, aes(x = hm(time_of_day), y = value, fill = fct_rev(variable))) +
+    geom_bar(stat = "identity", position = "identity", alpha = 0.5) +
+    facet_wrap(~factor(weekday, levels = weekdays), nrow = 5) +
+    scale_y_continuous(labels = scales::percent, limits = c(0,1)) +
+    scale_x_time() +
+    labs(title = "Occupancy and bookings by weekday and time",
+         x = "Time of Day") +
+    theme_minimal() +
+    theme(axis.title.y = element_blank(),
+          legend.title = element_blank())
+  
+  ggplotly(chart)
 }
