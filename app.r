@@ -74,7 +74,8 @@ ui <- dashboardPage(
                 ),
                 tabBox(id = "room_narrative_tabBox",
                        tabPanel("booking permutation summary",
-                                dataTableOutput(outputId = "permutation_table_room"))
+                                dataTableOutput(outputId = "permutation_table_room"),
+                                plotlyOutput(outputId = "permutation_pie_room"))
                 )
                 
               ),
@@ -128,7 +129,8 @@ ui <- dashboardPage(
                 
                 tabBox(id = "building_data_tabBox",
                        tabPanel("booking permutation summary",
-                                dataTableOutput(outputId = "permutation_table_building"))
+                                dataTableOutput(outputId = "permutation_table_building"),
+                                plotlyOutput(outputId = "permutation_pie_building"))
                        
                 )
               )
@@ -207,6 +209,10 @@ server <- function(input, output, session) {
     permutation_summary(room_observations())
   })
   
+  output$permutation_pie_room <- renderPlotly({
+    permutation_summary_pie(room_observations())
+  })
+  
   output$permutation_throughout_day <- renderPlotly({
     occupancy_through_day(room_observations())
   })
@@ -279,6 +285,10 @@ server <- function(input, output, session) {
   
   output$permutation_table_building <- renderDataTable({
     permutation_summary(building_observations())
+  })
+  
+  output$permutation_pie_building <- renderPlotly({
+    permutation_summary_pie(building_observations())
   })
   
   output$bookings_heatmap <- renderPlotly({

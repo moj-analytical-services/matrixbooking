@@ -213,7 +213,7 @@ room_booking_length_histogram <- function(joined_observations) {
 
 permutation_summary <- function(joined_observations) {
   
-  permutation_summary <- joined_observations %>%
+  joined_observations %>%
     get_booked_permutation() %>%
     group_by(booked_permutation) %>%
     summarise(working_hours = n()/6) %>%
@@ -222,6 +222,27 @@ permutation_summary <- function(joined_observations) {
   
 }
 
+
+permutation_summary_pie <- function(joined_observations) {
+  permutation_summary_table <- permutation_summary(joined_observations) %>% 
+    filter(booked_permutation != "Total")
+  
+  category_colours <- c("lightgrey",
+                        "sandybrown",
+                        "lemonchiffon",
+                        "forestgreen")
+  
+  plot_ly(permutation_summary_table,
+          labels = ~(booked_permutation),
+          values = ~working_hours,
+          type = "pie",
+          textinfo = "label+percent",
+          showlegend = FALSE,
+          marker = list(colors = category_colours),
+          sort = F) %>%
+    layout(title = 'Permutation summary pie')
+  
+}
 
 occupancy_through_day <- function(joined_observations) {
   my_data <- joined_observations %>%
