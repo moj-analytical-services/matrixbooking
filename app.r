@@ -76,16 +76,13 @@ ui <- dashboardPage(
                        tabPanel("booking permutation summary",
                                 dataTableOutput(outputId = "permutation_table_room"),
                                 plotlyOutput(outputId = "permutation_pie_room"))
-                )
-                
-              ),
-              fluidRow(
+                ),
                 tabBox(id = "room_data_tabBox",
                        width = 9,
                        tabPanel("bookings data",
-                                dataTableOutput(outputId = "bookings_data")),
+                                dataTableOutput(outputId = "bookings_data_room")),
                        tabPanel("locations data",
-                                dataTableOutput(outputId = "locations_data"))
+                                dataTableOutput(outputId = "locations_data_room"))
                 )
               )
       ),
@@ -127,15 +124,22 @@ ui <- dashboardPage(
                                 plotlyOutput(outputId = "building_time_to_cancellation_histogram"))
                 ),
                 
-                tabBox(id = "building_data_tabBox",
+                tabBox(id = "building_narrative_tabBox",
                        tabPanel("booking permutation summary",
                                 dataTableOutput(outputId = "permutation_table_building"),
                                 plotlyOutput(outputId = "permutation_pie_building"))
                        
+                ),
+                tabBox(id = "building_data_tabBox",
+                       width = 9,
+                       tabPanel("bookings data",
+                                dataTableOutput(outputId = "bookings_data_building")),
+                       tabPanel("locations data",
+                                dataTableOutput(outputId = "locations_data_building"))
                 )
               )
+              
       )
-      
     )
   )
 )
@@ -217,11 +221,13 @@ server <- function(input, output, session) {
     occupancy_through_day(room_observations())
   })
   
-  output$bookings_data <- renderDataTable({
-    DT::datatable(bookings, filter = list(position = 'top', clear = FALSE))
+  output$bookings_data_room <- renderDataTable({
+    DT::datatable(bookings %>%
+                    dplyr::filter(location_id %in% unique(room_observations()$location)),
+                  filter = list(position = 'top', clear = FALSE))
   })
   
-  output$locations_data <- renderDataTable({
+  output$locations_data_room <- renderDataTable({
     DT::datatable(locations, filter = list(position = 'top', clear = FALSE))
   })
   
@@ -302,6 +308,16 @@ server <- function(input, output, session) {
   output$weekday_throughout_day <- renderPlotly({
     time_of_day_bar(building_observations())
     
+  })
+  
+  output$bookings_data_building <- renderDataTable({
+    DT::datatable(bookings %>%
+                    dplyr::filter(location_id %in% unique(building_observations()$location)),
+                  filter = list(position = 'top', clear = FALSE))
+  })
+  
+  output$locations_data_building <- renderDataTable({
+    DT::datatable(locations, filter = list(position = 'top', clear = FALSE))
   })
   
   
