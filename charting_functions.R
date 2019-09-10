@@ -12,7 +12,7 @@ get_booked_permutation <- function(joined_observations) {
       sensor_value == 1 & is_booked == 0 ~ "2. Occupied but not booked",
       sensor_value == 0 & is_booked == 1 ~ "1. Booked but not occupied",
       sensor_value == 0 & is_booked == 0 ~ "0. Neither booked nor occupied",
-      is.na(sensor_value) ~ "invalid occupeye sensor reading")
+      is.na(sensor_value) ~ "invalid occupeye sensor reading") %>% factor()
     )
 }
 
@@ -247,24 +247,22 @@ permutation_summary_pie <- function(joined_observations) {
 occupancy_through_day <- function(joined_observations) {
   my_data <- joined_observations %>%
     get_booked_permutation() %>%
-    mutate(time = strftime(obs_datetime, "%H:%M:%S"))
+    mutate(time = strftime(obs_datetime, "%H:%M"))
   
   category_colours <- c("grey",
                         "sandybrown",
                         "lemonchiffon",
                         "darkseagreen3")
   
-  
-  my_plot <- ggplot(my_data,
-                    aes(x = date,
-                        y = fct_rev(time),
-                        fill = booked_permutation)) +
+  ggplot(my_data,
+         aes(x = date,
+             y = fct_rev(time),
+             fill = booked_permutation)) +
     geom_tile() +
     scale_fill_manual(values = category_colours)
-  
-  ggplotly(my_plot)
-  
-  
+    
+    
+    
 }
 
 
@@ -423,18 +421,13 @@ time_of_day_heatmap <- function(joined_observations, varname) {
     group_by(weekday, time_of_day) %>%
     summarise(count = sum(!!expr, na.rm = T))
   
-  chart <- ggplot(data,
-                  aes(y = factor(weekday,
-                                 levels = rev(weekdays)),
-                      x = hm(time_of_day))) +
-    geom_tile(aes(fill = count)) +
-    scale_x_time() +
-    scale_fill_gradient2(low = "#f1dfda", high = "#9b0101") +
-    labs(title = glue("heatmap of {varname} by weekday"),
-         x = "Time of day",
-         y = "Weekday")
+  plot_ly(data,
+          x = ~factor(weekday, levels = weekdays),
+          y = ~fct_rev(time_of_day),
+          z = ~count,
+          type = "heatmap",
+          colors = "Reds")
   
-  ggplotly(chart)
 }
 
 time_of_day_bar <- function(joined_observations) {
