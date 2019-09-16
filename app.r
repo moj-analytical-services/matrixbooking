@@ -8,6 +8,7 @@ library(DT)
 
 source("data_cleaning_functions.R")
 source("charting_functions.R")
+source("airflow_queries.R")
 
 
 my_data <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/leeds.feather")
@@ -20,7 +21,7 @@ date_list <- lubridate::date(my_data$obs_datetime)
 
 
 ui <- dashboardPage(
-  dashboardHeader(title = "Matrixbooking app v0.0.5", titleWidth = 350),
+  dashboardHeader(title = "Matrixbooking app v0.0.9", titleWidth = 350),
   dashboardSidebar(
     sidebarMenu(
       dateRangeInput(inputId = "date_filter",
@@ -29,7 +30,7 @@ ui <- dashboardPage(
                      end = max(date_list),
                      min = min(date_list),
                      max = max(date_list)),
-      #menuItem("Data Download", tabName = "data_download"),
+      menuItem("Data Download", tabName = "data_download"),
       menuItem("Report by room", tabName = "by_room"),
       menuItem("Report by building", tabName = "by_building")
     )
@@ -39,12 +40,11 @@ ui <- dashboardPage(
     tabItems(
       tabItem(tabName = "data_download",
               fluidRow(
-                selectInput(inputId = "download_building", 
-                            label = "Select building",
-                            choices = unique(my_data$building)),
+                uiOutput("survey_picker"),
                 
                 dateRangeInput(inputId = "download_date_range", 
-                               label = "Select time period to download"),
+                               label = "Select time period to download",
+                               start = today() %m-% months(1)),
                 
                 actionButton(inputId = "download_data", label = "download data")
               )
@@ -146,10 +146,60 @@ ui <- dashboardPage(
 
 server <- function(input, output, session) {
   
+  RV <- reactiveValues()
+  RV$joined_observations <- my_data
+  RV$surveys <- get_surveys()
+  
+  output$survey_picker <- renderUI({
+    selectInput(inputId = "survey_picker",
+                label = "Select Occupeye Survey",
+                choices = unique(RV$surveys$name))
+  })
+  
+  observeEvent(input$survey_picker, {
+    RV$selected_survey_id <- RV$surveys %>%
+      filter(name == input$survey_picker) %>%
+      pull(survey_id)
+  })
+  
+  observeEvent(input$download_data, {
+  start.time <- Sys.time()
+  
+    RV$sensor_observations <- get_sensor_observations(RV$selected_survey_id,
+                                                      input$download_date_range[[1]],
+                                                      input$download_date_range[[2]])
+    
+    RV$bookings <- get_bookings(RV$selected_survey_id,
+                                input$download_date_range[[1]],
+                                input$download_date_range[[2]])
+    
+    RV$locations <- get_locations(RV$selected_survey_id)
+    
+    RV$sensorised_bookings <- convert_bookings_to_sensors(RV$bookings)
+    
+    RV$joined_observations <- get_joined_df(RV$sensor_observations,
+                                            RV$sensorised_bookings %>% filter(status != "CANCELLED")) %>%
+      filter_time_range("09:00","17:00")
+    
+    updateSelectInput(inputId = "room",
+                      choices = sort(unique(RV$joined_observations$roomname)))
+    
+    updatePickerInput(inputId = "room_type",
+                      choices = sort(unique(RV$joined_observations$devicetype)),
+                      selected = sort(unique(RV$joined_observations$devicetype)))
+    
+    sendSweetAlert(session, "Data download finished")
+    
+    
+    end.time <- Sys.time()
+    
+    print(end.time - start.time)
+    
+  })
   
   # create reactive data object -----------------------------------------------------------
   joined_observations <- reactive({
-    my_data %>%
+    RV$joined_observations %>%
       dplyr::filter(obs_datetime >= input$date_filter[1],
                     obs_datetime <= paste0(input$date_filter[2], " 23:50"))
   })
