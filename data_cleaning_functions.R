@@ -95,3 +95,7 @@ add_cancelled_to_meeting <- function(bookings) {
   bookings %>%
     mutate(cancelled_to_meeting = difftime(time_from, cancelled_time, units = "days"))
 }
+
+get_survey_id <- function(surveys, survey_name) {
+  surveys %>% filter(name == survey_name) %>% pull(survey_id)
+}
