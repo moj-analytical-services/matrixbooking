@@ -226,7 +226,7 @@ permutation_summary <- function(joined_observations) {
 
 permutation_summary_pie <- function(joined_observations) {
   permutation_summary_table <- permutation_summary(joined_observations) %>% 
-    filter(booked_permutation != "Total")
+    dplyr::filter(booked_permutation != "Total")
   
   category_colours <- c("lightgrey",
                         "sandybrown",
