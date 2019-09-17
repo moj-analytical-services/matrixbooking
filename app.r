@@ -163,30 +163,35 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$download_data, {
-  start.time <- Sys.time()
-  
-    RV$sensor_observations <- get_sensor_observations(RV$selected_survey_id,
-                                                      input$download_date_range[[1]],
-                                                      input$download_date_range[[2]])
+    start.time <- Sys.time()
     
-    RV$bookings <- get_bookings(RV$selected_survey_id,
-                                input$download_date_range[[1]],
-                                input$download_date_range[[2]])
+    withProgress(message = glue("Downloading data from {input$survey_picker}"), {
+      RV$sensor_observations <- get_sensor_observations(RV$selected_survey_id,
+                                                        input$download_date_range[[1]],
+                                                        input$download_date_range[[2]])
+      
+      RV$bookings <- get_bookings(RV$selected_survey_id,
+                                  input$download_date_range[[1]],
+                                  input$download_date_range[[2]])
+      
+      RV$locations <- get_locations(RV$selected_survey_id)
+      
+      RV$sensorised_bookings <- convert_bookings_to_sensors(RV$bookings)
+      
+      RV$joined_observations <- get_joined_df(RV$sensor_observations,
+                                              RV$sensorised_bookings %>% filter(status != "CANCELLED")) %>%
+        filter_time_range("09:00","17:00")
+      
+      updateSelectInput(session,
+                        inputId = "room",
+                        choices = sort(unique(RV$joined_observations$roomname)))
+      
+      updatePickerInput(session,
+                        inputId = "room_type",
+                        choices = sort(unique(RV$joined_observations$devicetype)),
+                        selected = sort(unique(RV$joined_observations$devicetype)))
+    })
     
-    RV$locations <- get_locations(RV$selected_survey_id)
-    
-    RV$sensorised_bookings <- convert_bookings_to_sensors(RV$bookings)
-    
-    RV$joined_observations <- get_joined_df(RV$sensor_observations,
-                                            RV$sensorised_bookings %>% filter(status != "CANCELLED")) %>%
-      filter_time_range("09:00","17:00")
-    
-    updateSelectInput(inputId = "room",
-                      choices = sort(unique(RV$joined_observations$roomname)))
-    
-    updatePickerInput(inputId = "room_type",
-                      choices = sort(unique(RV$joined_observations$devicetype)),
-                      selected = sort(unique(RV$joined_observations$devicetype)))
     
     sendSweetAlert(session, "Data download finished")
     
