@@ -158,7 +158,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$survey_picker, {
     RV$selected_survey_id <- RV$surveys %>%
-      filter(name == input$survey_picker) %>%
+      dplyr::filter(name == input$survey_picker) %>%
       pull(survey_id)
   })
   
@@ -179,7 +179,7 @@ server <- function(input, output, session) {
       RV$sensorised_bookings <- convert_bookings_to_sensors(RV$bookings)
       
       RV$joined_observations <- get_joined_df(RV$sensor_observations,
-                                              RV$sensorised_bookings %>% filter(status != "CANCELLED")) %>%
+                                              RV$sensorised_bookings %>% dplyr::filter(status != "CANCELLED")) %>%
         filter_time_range("09:00","17:00")
       
       updateSelectInput(session,
