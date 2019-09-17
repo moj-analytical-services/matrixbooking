@@ -217,7 +217,8 @@ permutation_summary <- function(joined_observations) {
     get_booked_permutation() %>%
     group_by(booked_permutation) %>%
     summarise(working_hours = n()/6) %>%
-    mutate(proportion = scales::percent(prop.table(working_hours))) %>%
+    mutate(proportion = scales::percent(prop.table(working_hours)),
+           working_hours = round(working_hours, 2)) %>%
     adorn_totals()
   
 }
