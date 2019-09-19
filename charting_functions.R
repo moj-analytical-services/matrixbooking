@@ -132,7 +132,8 @@ room_utilisation_by_type <- function(joined_observations, bar_position = 'fill')
                                  "Under utilised" = "thistle3",
                                  "Unused" = "powderblue")) +
     scale_y_continuous(labels = scales::percent) +
-    ggtitle("Room types by utilisation")
+    ggtitle("Room types by utilisation") +
+    theme(axis.text.x = element_text(angle = 45))
   
 }
 
@@ -280,7 +281,7 @@ occupancy_through_day <- function(joined_observations) {
     get_booked_permutation() %>%
     mutate(time = strftime(obs_datetime, "%H:%M"))
   
-  category_colours <- c("grey",
+  category_colours <- c("lightgrey",
                         "sandybrown",
                         "lemonchiffon",
                         "darkseagreen3")
