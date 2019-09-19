@@ -44,7 +44,7 @@ room_utilisation_permutation <- function(joined_observations, varname) {
 
 get_utilisation_by_date <- function(joined_observations) {
   joined_observations %>%
-    group_by(date, roomname) %>% 
+    group_by(date, roomname, devicetype) %>% 
     summarise(utilisation = mean(sensor_value, na.rm = T)) %>%
     get_util_cat() %>%
     ungroup()
@@ -104,6 +104,37 @@ room_utilisation_by_weekday <- function(joined_observations, bar_position = 'fil
     ggtitle("Rooms by utilisation by weekday")
 }
 
+room_utilisation_by_type <- function(joined_observations, bar_position = 'fill') {
+  utilisation_by_type <- get_utilisation_by_date(joined_observations)
+  
+  count_by_cat <- utilisation_by_type %>%
+    group_by(devicetype,
+             util_cat) %>%
+    summarise(count = n()) %>%
+    mutate(prop = prop.table(count)) %>%
+    ungroup()
+  
+  device_order <- count_by_cat %>%
+    filter(util_cat == "Effective utilisation") %>%
+    mutate(devicetype = fct_reorder(devicetype, desc(prop))) %>%
+    pull(devicetype) %>%
+    levels()
+  
+  
+  
+  ggplot(data = count_by_cat, 
+         mapping = aes(x = factor(devicetype, levels = device_order), 
+                       y = count, 
+                       fill = util_cat)) +
+    geom_bar(position = bar_position, 
+             stat = "identity") + 
+    scale_fill_manual(values = c("Effective utilisation" = "coral2",
+                                 "Under utilised" = "thistle3",
+                                 "Unused" = "powderblue")) +
+    scale_y_continuous(labels = scales::percent) +
+    ggtitle("Room types by utilisation")
+  
+}
 
 get_utilisation_by_date_and_booking <- function(joined_observations) {
   # counts the number of non-cancelled bookings by util_cat and day
@@ -240,8 +271,7 @@ permutation_summary_pie <- function(joined_observations) {
           textinfo = "label+percent",
           showlegend = FALSE,
           marker = list(colors = category_colours),
-          sort = F) %>%
-    layout(title = 'Permutation summary pie')
+          sort = F)
   
 }
 
@@ -427,7 +457,11 @@ time_of_day_heatmap <- function(joined_observations, varname) {
           y = ~fct_rev(time_of_day),
           z = ~count,
           type = "heatmap",
-          colors = "Reds")
+          colors = "Reds") %>%
+    layout(title = case_when(varname == "is_booked" ~"most popular booking times",
+                             TRUE ~ "Occupancy heatmap"),
+           xaxis = list(title = ""),
+           yaxis = list(title = "Time of day"))
   
 }
 
@@ -461,4 +495,34 @@ time_of_day_bar <- function(joined_observations) {
           legend.title = element_blank())
   
   ggplotly(chart)
+}
+
+out_of_hours_table <- function(bookings) {
+  bookings %>%
+    dplyr::filter(!in_time_range(created, "09:00", "17:00")) %>%
+    group_by(booked_by_id) %>%
+    summarise(count = n()) %>%
+    arrange(desc(count))
+  
+  
+}
+
+top_booked_hours_by_user <- function(bookings) {
+  bookings %>%
+    mutate(booked_hours = difftime(time_to, time_from, units = "hours")) %>%
+    group_by(booked_by_id, status) %>%
+    summarise(booked_hours = sum(booked_hours)) %>%
+    spread(status, booked_hours) %>%
+    arrange(desc(CONFIRMED))
+  
+}
+
+top_no_showers <- function(bookings) {
+  
+  bookings %>%
+    dplyr::filter(status_reason == "CANCELLED_NO_SHOW") %>%
+    group_by(booked_by_id) %>%
+    summarise(no_shows = n()) %>%
+    arrange(desc(no_shows))
+  
 }
