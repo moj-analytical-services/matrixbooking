@@ -1,0 +1,58 @@
+---
+date:  "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  word_document:
+    toc: true
+    reference_docx: matrixbooking-report-reference.dotx
+
+params:
+  start_date: NULL
+  end_date: NULL
+  joined_observations: NULL
+  bookings: NULL
+  survey_name: NULL
+  
+title: "`r paste0('Meeting room usage report, ', params$survey_name)`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+#####
+
+# Room bookings report for `r params$start_date` to `r params$end_date`
+
+```{r summary, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
+joined_observations <- params$joined_observations
+
+cat("## Summary table")
+
+knitr::kable(permutation_summary(joined_observations))
+
+cat("## Summary pie chart \n")
+
+pie <- permutation_summary_pie(joined_observations)
+
+pie
+
+cat("\n\n## Occupancy by room type")
+print(room_utilisation_by_type(joined_observations))
+
+```
+
+## Charts by room
+
+```{r charts_by_room, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
+
+room_list <- unique(params$joined_observations$roomname)
+for(room in room_list) {
+  cat("\n\n## ", room, "\n\n", sep = "")
+  filtered_observations <- joined_observations %>%
+    dplyr::filter(roomname == room)
+  
+  print(occupancy_through_day(filtered_observations))
+  
+}
+```

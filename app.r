@@ -46,7 +46,8 @@ ui <- dashboardPage(
                                label = "Select time period to download",
                                start = today() %m-% months(1)),
                 
-                actionButton(inputId = "download_data", label = "download data")
+                actionButton(inputId = "download_data", label = "download data"),
+                downloadButton(outputId = "download_report", label = "download word report")
               )
       ),
       
@@ -157,6 +158,8 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$survey_picker, {
+    RV$survey_name <- input$survey_picker
+    
     RV$selected_survey_id <- RV$surveys %>%
       dplyr::filter(name == input$survey_picker) %>%
       pull(survey_id)
@@ -201,6 +204,35 @@ server <- function(input, output, session) {
     print(end.time - start.time)
     
   })
+  
+  output$download_report <- downloadHandler(
+    filename = "matrixbooking report.docx",
+    content = function(file) {
+      out_report <- "word_report.rmd"
+      
+      src <- normalizePath(out_report)
+      
+      # temporarily switch to the temp dir, in case you do not have write
+      # permission to the current working directory
+      owd <- setwd(tempdir())
+      on.exit(setwd(owd))
+      file.copy(src, out_report, overwrite = TRUE)
+      
+      word_report_reference <- s3tools::download_file_from_s3("alpha-app-matrixbooking/matrixbooking-report-reference.dotx",
+                                                              "matrixbooking-report-reference.dotx",
+                                                              overwrite = TRUE)
+      withProgress(message = "Generating report...", {
+        out <- rmarkdown::render(out_report, 
+                                 params = list(start_date = input$date_filter[1],
+                                               end_date = input$date_filter[2], 
+                                               joined_observations = joined_observations(),
+                                               bookings = RV$bookings,
+                                               survey_name = RV$survey_name))
+        file.rename(out, file)
+      })
+      
+      
+    })
   
   # create reactive data object -----------------------------------------------------------
   joined_observations <- reactive({
