@@ -32,7 +32,8 @@ ui <- dashboardPage(
                      max = max(date_list)),
       menuItem("Data Download", tabName = "data_download"),
       menuItem("Report by room", tabName = "by_room"),
-      menuItem("Report by building", tabName = "by_building")
+      menuItem("Report by building", tabName = "by_building"),
+      menuItem("Top users", tabName = "by_users")
     )
   ),
   
@@ -142,7 +143,25 @@ ui <- dashboardPage(
                 )
               )
               
+      ),
+      
+      tabItem(
+        tabName = "by_users",
+        fluidRow(
+          tabBox(id = "user_tables",
+                 tabPanel("Top bookers",
+                          "This table shows the total number of hours booked by user.",
+                          dataTableOutput(outputId = "top_bookers")),
+                 tabPanel("Out of hours bookers",
+                          "This table shows the number of bookings made by users outside working hours (9-5)",
+                          dataTableOutput(outputId = "out_of_hours_bookers")),
+                 tabPanel("Top no-showers",
+                          "This table shows the top users by number of meetings that were cancelled due to no-shows",
+                          dataTableOutput(outputId = "no_showers"))
+          )
+        )
       )
+      
     )
   )
 )
@@ -151,6 +170,7 @@ server <- function(input, output, session) {
   
   RV <- reactiveValues()
   RV$joined_observations <- my_data
+  RV$bookings <- bookings
   RV$surveys <- get_surveys()
   
   output$survey_picker <- renderUI({
@@ -357,8 +377,8 @@ server <- function(input, output, session) {
   output$room_types_by_occupancy <- renderPlotly({
     room_utilisation_by_type(building_observations())
   })
-    
-    
+  
+  
   output$smoothing_chart <- renderPlotly({
     smoothing_chart(building_observations(), 0.5)
   })
@@ -420,6 +440,20 @@ server <- function(input, output, session) {
   
   output$locations_data_building <- renderDataTable({
     DT::datatable(locations, filter = list(position = 'top', clear = FALSE))
+  })
+  
+  # User abuse charts ------------------------------------------------------
+  
+  output$top_bookers <- renderDataTable({
+    DT::datatable(top_booked_hours_by_user(RV$bookings))
+  })
+  
+  output$out_of_hours_bookers <- renderDataTable({
+    DT::datatable(out_of_hours_table(RV$bookings))
+  })
+  
+  output$no_showers <- renderDataTable({
+    DT::datatable(top_no_showers(RV$bookings))
   })
   
   
