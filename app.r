@@ -104,6 +104,8 @@ ui <- dashboardPage(
                                 plotlyOutput(outputId = "bookings_heatmap"),
                                 plotlyOutput(outputId = "occupancy_heatmap"),
                                 plotlyOutput(outputId = "weekday_throughout_day")),
+                       tabPanel("room usage by type",
+                                plotlyOutput(outputId = "room_types_by_occupancy")),
                        tabPanel("smoothing",
                                 plotlyOutput(outputId = "smoothing_chart")),
                        tabPanel("Bookings by utilisation",
@@ -171,7 +173,8 @@ server <- function(input, output, session) {
     withProgress(message = glue("Downloading data from {input$survey_picker}"), {
       RV$sensor_observations <- get_sensor_observations(RV$selected_survey_id,
                                                         input$download_date_range[[1]],
-                                                        input$download_date_range[[2]])
+                                                        input$download_date_range[[2]]) %>%
+        change_p_to_person()
       
       RV$bookings <- get_bookings(RV$selected_survey_id,
                                   input$download_date_range[[1]],
@@ -185,6 +188,13 @@ server <- function(input, output, session) {
                                               RV$sensorised_bookings %>% dplyr::filter(status != "CANCELLED")) %>%
         filter_time_range("09:00","17:00")
       
+      
+      updateDateRangeInput(session,
+                           inputId = "date_filter",
+                           min = input$download_date_range[[1]],
+                           max = input$download_date_range[[2]],
+                           start = input$download_date_range[[1]],
+                           end = input$download_date_range[[2]])
       updateSelectInput(session,
                         inputId = "room",
                         choices = sort(unique(RV$joined_observations$roomname)))
@@ -344,6 +354,11 @@ server <- function(input, output, session) {
     room_utilisation_by_weekday(building_observations())
   })
   
+  output$room_types_by_occupancy <- renderPlotly({
+    room_utilisation_by_type(building_observations())
+  })
+    
+    
   output$smoothing_chart <- renderPlotly({
     smoothing_chart(building_observations(), 0.5)
   })

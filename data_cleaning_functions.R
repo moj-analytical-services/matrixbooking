@@ -80,6 +80,13 @@ get_util_cat <- function(joined_observations) {
   
 }
 
+change_p_to_person <- function(sensor_observations) {
+  # changes
+  
+  sensor_observations %>%
+    mutate(devicetype = gsub("p", " person", devicetype))
+}
+
 add_created_to_meeting <- function(bookings) {
   
   bookings %>%
