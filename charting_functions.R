@@ -121,7 +121,6 @@ room_utilisation_by_type <- function(joined_observations, bar_position = 'fill')
     levels()
   
   
-  
   ggplot(data = count_by_cat, 
          mapping = aes(x = factor(devicetype, levels = device_order), 
                        y = count, 
@@ -133,7 +132,9 @@ room_utilisation_by_type <- function(joined_observations, bar_position = 'fill')
                                  "Unused" = "powderblue")) +
     scale_y_continuous(labels = scales::percent) +
     ggtitle("Room types by utilisation") +
-    theme(axis.text.x = element_text(angle = 45))
+    theme(axis.text.x = element_text(angle = 45, vjust = 1),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank())
   
 }
 
@@ -249,9 +250,10 @@ permutation_summary <- function(joined_observations) {
     get_booked_permutation() %>%
     group_by(booked_permutation) %>%
     summarise(working_hours = n()/6) %>%
-    mutate(proportion = scales::percent(prop.table(working_hours)),
+    mutate(proportion = prop.table(working_hours),
            working_hours = round(working_hours, 2)) %>%
-    adorn_totals()
+    adorn_totals() %>%
+    mutate(proportion = scales::percent(proportion))
   
 }
 
@@ -281,6 +283,10 @@ occupancy_through_day <- function(joined_observations) {
     get_booked_permutation() %>%
     mutate(time = strftime(obs_datetime, "%H:%M"))
   
+  every_nth = function(n) {
+    return(function(x) {x[c(rep(FALSE, n - 1), TRUE)]})
+  }
+  
   category_colours <- c("lightgrey",
                         "sandybrown",
                         "lemonchiffon",
@@ -291,7 +297,11 @@ occupancy_through_day <- function(joined_observations) {
              y = fct_rev(time),
              fill = booked_permutation)) +
     geom_tile() +
-    scale_fill_manual(values = category_colours)
+    ylab("Time") +
+    scale_y_discrete(breaks = every_nth(n = 6)) +
+    scale_fill_manual(values = category_colours) +
+    theme(legend.title = element_blank()) +
+    theme_minimal()
     
     
     
