@@ -17,9 +17,9 @@ dependencies:
   - botocore=1.12.190=py_1
   - bwidget=1.9.11=0
   - bzip2=1.0.8=h516909a_0
-  - ca-certificates=2019.6.16=hecc5488_0
+  - ca-certificates=2019.9.11=hecc5488_0
   - cairo=1.16.0=h18b612c_1001
-  - certifi=2019.6.16=py37_1
+  - certifi=2019.9.11=py37_0
   - cffi=1.12.3=py37h8022711_0
   - cfitsio=3.470=hb60a0a2_1
   - conda-env=2.6.0=1
@@ -96,6 +96,7 @@ dependencies:
   - pango=1.40.14=he7ab937_1005
   - patchelf=0.10=he1b5a44_0
   - pcre=8.41=hf484d3e_1003
+  - phantomjs=2.1.1=1
   - pip=19.1.1=py37_0
   - pixman=0.38.0=h516909a_1003
   - poppler=0.67.0=h2ad7f00_6
@@ -142,11 +143,13 @@ dependencies:
   - r-dbi=1.0.0=r35h6115d3f_1002
   - r-dbplyr=1.4.2=r35h6115d3f_1
   - r-dbtools=2.0.2=r351_0
+  - r-debugme=1.1.0=r35h6115d3f_1002
   - r-desc=1.2.0=r35h6115d3f_1002
   - r-devtools=2.1.0=r35h6115d3f_1
   - r-digest=0.6.20=r35h0357c0b_1
   - r-dplyr=0.8.3=r35h0357c0b_1
   - r-dt=0.7=r35h6115d3f_1
+  - r-dygraphs=1.1.1.6=r35h6115d3f_1002
   - r-e1071=1.7_2=r35h0357c0b_1
   - r-ellipsis=0.2.0.1=r35hcdcec82_1
   - r-evaluate=0.14=r35h6115d3f_1
@@ -161,7 +164,9 @@ dependencies:
   - r-generics=0.0.2=r35h6115d3f_1002
   - r-geosphere=1.5_10=r35hcdcec82_1
   - r-ggplot2=3.2.0=r35h6115d3f_1
+  - r-ggrepel=0.8.1=r35h0357c0b_1
   - r-gh=1.0.1=r35h6115d3f_1002
+  - r-gistr=0.4.2=r35h6115d3f_1002
   - r-git2r=0.26.1=r35h5ca76e2_1
   - r-glue=1.3.1=r35hcdcec82_1
   - r-gtable=0.3.0=r35h6115d3f_1
@@ -196,6 +201,7 @@ dependencies:
   - r-mc2d=0.1_18=r351h6115d3f_1001
   - r-memoise=1.1.0=r35h6115d3f_1002
   - r-mgcv=1.8_28=r35hcdcec82_1
+  - r-microbenchmark=1.4_6=r35h516909a_1
   - r-mime=0.7=r35hcdcec82_1
   - r-modelr=0.1.4=r35h6115d3f_1
   - r-munsell=0.5.0=r35h6115d3f_1002
@@ -203,19 +209,25 @@ dependencies:
   - r-nlme=3.1_140=r35h9bbef5b_1
   - r-openssl=1.4=r35h9c8475f_1
   - r-packrat=0.5.0=r35h6115d3f_1001
+  - r-parsedate=1.2.0=r35hcdcec82_1
   - r-pillar=1.4.2=r35h6115d3f_2
+  - r-pingr=1.1.2=r35hcdcec82_1001
+  - r-piton=0.1.1=r35h0357c0b_1003
   - r-pkgbuild=1.0.3=r35h6115d3f_1
   - r-pkgconfig=2.0.2=r35h6115d3f_1002
   - r-pkgload=1.0.2=r35h0357c0b_1001
   - r-plogr=0.2.0=r35h6115d3f_1002
   - r-plotly=4.9.0=r35h6115d3f_1
   - r-plyr=1.8.4=r35h0357c0b_1003
+  - r-png=0.1_7=r35hcdcec82_1003
   - r-praise=1.0.0=r35h6115d3f_1002
   - r-prettyunits=1.0.2=r35h6115d3f_1002
   - r-processx=3.4.0=r35hcdcec82_1
+  - r-profvis=0.3.6=r35hcdcec82_1
   - r-progress=1.2.2=r35h6115d3f_1
   - r-proj4=1.0_8=r35hc44880f_1007
   - r-promises=1.0.1=r35h0357c0b_1001
+  - r-pryr=0.1.4=r35h0357c0b_1003
   - r-ps=1.3.0=r35hcdcec82_1001
   - r-purrr=0.3.2=r35hcdcec82_1
   - r-r6=2.4.0=r35h6115d3f_1
@@ -225,15 +237,17 @@ dependencies:
   - r-readr=1.3.1=r35h0357c0b_1001
   - r-readxl=1.3.1=r35h0357c0b_1
   - r-rematch=1.0.1=r35h6115d3f_1002
+  - r-rematch2=2.1.0=r35h6115d3f_0
   - r-remotes=2.1.0=r35h6115d3f_1
   - r-reprex=0.3.0=r35h6115d3f_1
   - r-reshape2=1.4.3=r35h0357c0b_1004
   - r-reticulate=1.12=r35h0357c0b_1
   - r-rex=1.1.2=r35h6115d3f_1001
+  - r-rhandsontable=0.3.7=r35h6115d3f_1
   - r-rlang=0.4.0=r35hcdcec82_1
   - r-rmarkdown=1.14=r35h6115d3f_1
   - r-roxygen2=6.1.1=r35h0357c0b_1001
-  - r-rpivottable=0.3.0=r351h6115d3f_0
+  - r-rpivottable=0.3.0=r35h6115d3f_1
   - r-rprojroot=1.3_2=r35h6115d3f_1002
   - r-rstudioapi=0.10=r35h6115d3f_1
   - r-rttf2pt1=1.3.7=r35hcdcec82_1
@@ -245,8 +259,10 @@ dependencies:
   - r-sf=0.7_4=r35h474ac88_2
   - r-shiny=1.3.2=r35h6115d3f_1
   - r-shinydashboard=0.7.1=r35h6115d3f_1001
+  - r-shinytest=1.3.1=r35h6115d3f_1
   - r-shinytree=0.2.7=r35h6115d3f_0
   - r-shinywidgets=0.4.8=r35h6115d3f_1
+  - r-showimage=1.0.0=r35h6115d3f_1001
   - r-snakecase=0.11.0=r35h6115d3f_1
   - r-snowballc=0.6.0=r35hcdcec82_1
   - r-sourcetools=0.1.7=r35he1b5a44_1001
@@ -262,13 +278,16 @@ dependencies:
   - r-tidyselect=0.2.5=r35h0357c0b_1001
   - r-tidytext=0.2.1=r35h6115d3f_1
   - r-tidyverse=1.2.1=r35h6115d3f_1002
+  - r-tidyxl=1.0.4=r35h0357c0b_1
   - r-tinytex=0.14=r35h6115d3f_1
   - r-tokenizers=0.2.1=r35h0357c0b_1001
+  - r-ttr=0.23_4=r35h9bbef5b_1002
   - r-units=0.6_3=r35h0357c0b_1
   - r-usethis=1.5.1=r35h6115d3f_1
   - r-utf8=1.1.4=r35hcdcec82_1001
   - r-vctrs=0.2.0=r35hcdcec82_1
   - r-viridislite=0.3.0=r35h6115d3f_1002
+  - r-webdriver=1.0.5=r35h6115d3f_1001
   - r-webshot=0.5.1=r35h6115d3f_1001
   - r-whisker=0.3_2=r35h6115d3f_1002
   - r-widyr=0.1.1=r351h6115d3f_1000
@@ -277,8 +296,10 @@ dependencies:
   - r-xml2=1.2.0=r35h0357c0b_1003
   - r-xopen=1.0.0=r35h6115d3f_1001
   - r-xtable=1.8_4=r35h6115d3f_1
+  - r-xts=0.11_2=r35hcdcec82_1
   - r-yaml=2.2.0=r35hcdcec82_1002
   - r-zeallot=0.1.0=r35h6115d3f_1001
+  - r-zoo=1.8_6=r35hcdcec82_1
   - readline=8.0=hf8c457e_0
   - s3transfer=0.2.1=py37_0
   - setuptools=41.0.1=py37_0
