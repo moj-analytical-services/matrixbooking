@@ -25,21 +25,35 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Room bookings report for `r params$start_date` to `r params$end_date`
 
+This report shows utilisation of meeting rooms in the working week, 9am-5pm Monday to Friday.
+
+
 ```{r summary, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
 joined_observations <- params$joined_observations
 
 cat("## Summary table")
 
-knitr::kable(permutation_summary(joined_observations))
+knitr::kable(permutation_summary(joined_observations), col.names = c("", "Working Hours", "proportions"))
 
 cat("## Summary pie chart \n")
 
 pie <- permutation_summary_pie(joined_observations)
 
 pie
+```
 
-cat("\n\n## Occupancy by room type")
+## Overall utilisation
+
+The following charts show the rates of occupancy, by room type and by weekday.
+- Unused room: An unused room is a room which is not occupied for an entire day. To account for potential errors desks have been classified as unused where desk utilisation in the sample period is less than 15%.
+- Under Utilised rooms: For the purposes of this report an under utilised room is a used room which is used for less than 50% of the time during the day.
+In use: a room is used for more than 50% of the day.
+
+```{r utilisation, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
+cat("\n\n## Occupancy by room type \n\n")
 print(room_utilisation_by_type(joined_observations))
+
+cat("\n\n## Occupancy by weekday")
 
 ```
 
