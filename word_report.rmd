@@ -1,5 +1,6 @@
 ---
 date:  "`r format(Sys.time(), '%d %B, %Y')`"
+always_allow_html: yes
 output: 
   word_document:
     toc: true
