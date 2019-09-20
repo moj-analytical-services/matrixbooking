@@ -115,7 +115,7 @@ room_utilisation_by_type <- function(joined_observations, bar_position = 'fill')
     ungroup()
   
   device_order <- count_by_cat %>%
-    filter(util_cat == "Effective utilisation") %>%
+    dplyr::filter(util_cat == "Effective utilisation") %>%
     mutate(devicetype = fct_reorder(devicetype, desc(prop))) %>%
     pull(devicetype) %>%
     levels()
