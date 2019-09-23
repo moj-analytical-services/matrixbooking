@@ -112,9 +112,6 @@ ui <- dashboardPage(
                                 plotlyOutput(outputId = "room_types_by_occupancy")),
                        tabPanel("smoothing",
                                 plotlyOutput(outputId = "smoothing_chart")),
-                       tabPanel("Bookings by utilisation",
-                                plotlyOutput(outputId = "daily_bookings_by_occupancy_fill"),
-                                plotlyOutput(outputId = "daily_bookings_by_occupancy_stack")),
                        tabPanel("Bookings by permutation",
                                 selectInput(inputId = "selected_column",
                                             label = "Select grouping column",
@@ -374,18 +371,6 @@ server <- function(input, output, session) {
   # by building charts ------------------------------------------------------
   
   
-  
-  
-  output$daily_bookings_by_occupancy_fill <- renderPlotly({
-    booking_utilisation_by_date(building_observations())
-    
-  })
-  
-  output$daily_bookings_by_occupancy_stack <- renderPlotly({
-    booking_utilisation_by_date(building_observations(),
-                                "stack")
-    
-  })
   
   output$daily_rooms_by_occupancy <- renderPlotly({
     room_utilisation_by_date(building_observations())
