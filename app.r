@@ -45,7 +45,10 @@ ui <- dashboardPage(
                 
                 dateRangeInput(inputId = "download_date_range", 
                                label = "Select time period to download",
-                               start = today() %m-% months(1)),
+                               start = today() %m-% months(1),
+                               end = today() - 1),
+                uiOutput("start_time"),
+                uiOutput("end_time"),
                 
                 actionButton(inputId = "download_data", label = "download data"),
                 downloadButton(outputId = "download_report", label = "download word report")
@@ -63,7 +66,7 @@ ui <- dashboardPage(
                                 plotlyOutput(outputId = "booking_length_by_room")),
                        tabPanel("throughout the day",
                                 plotlyOutput(outputId = "booked_permutation_room"),
-                                plotlyOutput(outputId = "permutation_throughout_day")),
+                                plotOutput(outputId = "permutation_throughout_day")),
                        tabPanel("bookedness and occupancy",
                                 plotlyOutput(outputId = "booked_by_occupancy"),
                                 plotlyOutput(outputId = "occupancy_by_bookedness")),
@@ -173,10 +176,26 @@ server <- function(input, output, session) {
   RV$bookings <- bookings
   RV$surveys <- get_surveys()
   
+  time_list <- get_time_list()
+  
   output$survey_picker <- renderUI({
     selectInput(inputId = "survey_picker",
                 label = "Select Occupeye Survey",
                 choices = unique(RV$surveys$name))
+  })
+  
+  output$start_time <- renderUI({
+    selectInput(inputId = "start_time",
+                label = "Start time:",
+                choices = time_list,
+                selected = "09:00")
+  })
+  
+  output$end_time <- renderUI({
+    selectInput(inputId = "end_time",
+                label = "End time:",
+                choices = time_list,
+                selected = "17:00")
   })
   
   observeEvent(input$survey_picker, {
@@ -206,7 +225,7 @@ server <- function(input, output, session) {
       
       RV$joined_observations <- get_joined_df(RV$sensor_observations,
                                               RV$sensorised_bookings %>% dplyr::filter(status != "CANCELLED")) %>%
-        filter_time_range("09:00","17:00")
+        filter_time_range(input$start_time,input$end_time)
       
       
       updateDateRangeInput(session,
@@ -334,7 +353,7 @@ server <- function(input, output, session) {
     permutation_summary_pie(room_observations())
   })
   
-  output$permutation_throughout_day <- renderPlotly({
+  output$permutation_throughout_day <- renderPlot({
     occupancy_through_day(room_observations())
   })
   
