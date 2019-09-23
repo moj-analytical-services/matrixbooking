@@ -80,6 +80,13 @@ get_util_cat <- function(joined_observations) {
   
 }
 
+change_p_to_person <- function(sensor_observations) {
+  # changes
+  
+  sensor_observations %>%
+    mutate(devicetype = gsub("p", " person", devicetype))
+}
+
 add_created_to_meeting <- function(bookings) {
   
   bookings %>%
@@ -89,4 +96,13 @@ add_created_to_meeting <- function(bookings) {
 add_created_to_cancelled <- function(bookings) {
   bookings %>%
     mutate(created_to_cancelled = difftime(cancelled_time, created, units = "days"))
+}
+
+add_cancelled_to_meeting <- function(bookings) {
+  bookings %>%
+    mutate(cancelled_to_meeting = difftime(time_from, cancelled_time, units = "days"))
+}
+
+get_survey_id <- function(surveys, survey_name) {
+  surveys %>% dplyr::filter(name == survey_name) %>% pull(survey_id)
 }
