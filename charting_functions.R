@@ -20,12 +20,17 @@ room_utilisation_permutation <- function(joined_observations, varname) {
   
   expr <- sym(varname)
   
+  category_colours <- c("lightgrey",
+                        "sandybrown",
+                        "lemonchiffon",
+                        "darkseagreen3",
+                        "red")
+  
   
   utilisation_by_permutation <- get_booked_permutation(joined_observations) %>%
     count(booked_permutation, !!expr) %>%
     group_by(!!expr) %>%
-    mutate(prop = prop.table(n)) %>% 
-    dplyr::filter(booked_permutation != "0. Neither booked nor occupied")
+    mutate(prop = prop.table(n))
   
   
   
@@ -35,9 +40,9 @@ room_utilisation_permutation <- function(joined_observations, varname) {
                        fill = booked_permutation)) +
     geom_bar(position = "stack",
              stat = "identity") +
-    scale_fill_brewer(palette = "Spectral") +
+    scale_fill_manual(values = category_colours) +
     scale_y_continuous(labels = scales::percent, limits = c(0,1)) +
-    theme(axis.text.x = element_text(angle = 45)) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1)) +
     ggtitle("Room booking and occupancy")
   
 }
