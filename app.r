@@ -79,7 +79,7 @@ ui <- dashboardPage(
                 ),
                 tabBox(id = "room_narrative_tabBox",
                        tabPanel("booking permutation summary",
-                                dataTableOutput(outputId = "permutation_table_room"),
+                                tableOutput(outputId = "permutation_table_room"),
                                 plotlyOutput(outputId = "permutation_pie_room"))
                 ),
                 tabBox(id = "room_data_tabBox",
@@ -130,7 +130,7 @@ ui <- dashboardPage(
                 
                 tabBox(id = "building_narrative_tabBox",
                        tabPanel("booking permutation summary",
-                                dataTableOutput(outputId = "permutation_table_building"),
+                                tableOutput(outputId = "permutation_table_building"),
                                 plotlyOutput(outputId = "permutation_pie_building"))
                        
                 ),
@@ -343,7 +343,7 @@ server <- function(input, output, session) {
   })
   
   
-  output$permutation_table_room <- renderDataTable({
+  output$permutation_table_room <- renderTable({
     permutation_summary(room_observations())
   })
   
@@ -416,7 +416,7 @@ server <- function(input, output, session) {
     )
   })
   
-  output$permutation_table_building <- renderDataTable({
+  output$permutation_table_building <- renderTable({
     permutation_summary(building_observations())
   })
   
@@ -450,15 +450,15 @@ server <- function(input, output, session) {
   # User abuse charts ------------------------------------------------------
   
   output$top_bookers <- renderDataTable({
-    DT::datatable(top_booked_hours_by_user(RV$bookings))
+    DT::datatable(top_booked_hours_by_user(RV$bookings), rownames = FALSE)
   })
   
   output$out_of_hours_bookers <- renderDataTable({
-    DT::datatable(out_of_hours_table(RV$bookings))
+    DT::datatable(out_of_hours_table(RV$bookings), rownames = FALSE)
   })
   
   output$no_showers <- renderDataTable({
-    DT::datatable(top_no_showers(RV$bookings))
+    DT::datatable(top_no_showers(RV$bookings), rownames = FALSE)
   })
   
   
