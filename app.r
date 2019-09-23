@@ -213,7 +213,8 @@ server <- function(input, output, session) {
       RV$sensor_observations <- get_sensor_observations(RV$selected_survey_id,
                                                         input$download_date_range[[1]],
                                                         input$download_date_range[[2]]) %>%
-        change_p_to_person()
+        change_p_to_person() %>%
+        remove_non_business_days()
       
       RV$bookings <- get_bookings(RV$selected_survey_id,
                                   input$download_date_range[[1]],
