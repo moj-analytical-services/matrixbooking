@@ -290,7 +290,8 @@ occupancy_through_day <- function(joined_observations) {
   category_colours <- c("lightgrey",
                         "sandybrown",
                         "lemonchiffon",
-                        "darkseagreen3")
+                        "darkseagreen3",
+                        "red")
   
   ggplot(my_data,
          aes(x = date,
@@ -300,8 +301,7 @@ occupancy_through_day <- function(joined_observations) {
     ylab("Time") +
     scale_y_discrete(breaks = every_nth(n = 6)) +
     scale_fill_manual(values = category_colours) +
-    theme(legend.title = element_blank()) +
-    theme_minimal()
+    theme(legend.title = element_blank())
     
     
     
@@ -402,6 +402,7 @@ closest_colour_plot <- function(r,g,b) {
 bookings_created_to_meeting_histogram <- function(bookings) {
   bookings %>%
     add_created_to_meeting() %>%
+    dplyr::filter(created_to_meeting <= 90) %>%
     ggplot(aes(x = created_to_meeting, fill = status)) +
     geom_histogram(alpha=0.5, position="identity", binwidth = 1) +
     labs(x = "Days between creating the booking and start of meeting")
@@ -411,6 +412,7 @@ cancelled_bookings_histogram <- function(cancelled_bookings) {
   
   cancelled_bookings %>%
     add_created_to_meeting() %>%
+    dplyr::filter(created_to_meeting <= 90) %>%
     ggplot(aes(x = created_to_meeting, fill = status_reason)) +
     geom_histogram(alpha=0.5, position="identity", binwidth = 1)
   
@@ -420,6 +422,7 @@ start_to_cancelled_bookings_histogram <- function(cancelled_bookings) {
   
   cancelled_bookings %>%
     add_created_to_cancelled() %>%
+    dplyr::filter(created_to_cancelled <= 90) %>%
     ggplot(aes(x = created_to_cancelled, fill = status_reason)) +
     geom_histogram(alpha=0.5, position="identity", binwidth = 1)
   
@@ -428,6 +431,7 @@ start_to_cancelled_bookings_histogram <- function(cancelled_bookings) {
 cancelled_to_meeting_histogram <- function(cancelled_bookings) {
   cancelled_bookings %>%
     add_cancelled_to_meeting() %>%
+    dplyr::filter(cancelled_to_meeting <= 90) %>%
     ggplot(aes(x = cancelled_to_meeting, fill = status_reason)) +
     geom_histogram(alpha=0.5, position="identity", binwidth = 1)
   
