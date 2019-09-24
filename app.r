@@ -21,7 +21,7 @@ date_list <- lubridate::date(my_data$obs_datetime)
 
 
 ui <- dashboardPage(
-  dashboardHeader(title = "Matrixbooking app v0.1", titleWidth = 350),
+  dashboardHeader(title = "Matrixbooking app v0.1.1", titleWidth = 350),
   dashboardSidebar(
     sidebarMenu(
       dateRangeInput(inputId = "date_filter",
