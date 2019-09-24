@@ -21,7 +21,7 @@ date_list <- lubridate::date(my_data$obs_datetime)
 
 
 ui <- dashboardPage(
-  dashboardHeader(title = "Matrixbooking app v0.0.9", titleWidth = 350),
+  dashboardHeader(title = "Matrixbooking app v0.1", titleWidth = 350),
   dashboardSidebar(
     sidebarMenu(
       dateRangeInput(inputId = "date_filter",
@@ -45,7 +45,10 @@ ui <- dashboardPage(
                 
                 dateRangeInput(inputId = "download_date_range", 
                                label = "Select time period to download",
-                               start = today() %m-% months(1)),
+                               start = today() %m-% months(1),
+                               end = today() - 1),
+                uiOutput("start_time"),
+                uiOutput("end_time"),
                 
                 actionButton(inputId = "download_data", label = "download data"),
                 downloadButton(outputId = "download_report", label = "download word report")
@@ -63,7 +66,7 @@ ui <- dashboardPage(
                                 plotlyOutput(outputId = "booking_length_by_room")),
                        tabPanel("throughout the day",
                                 plotlyOutput(outputId = "booked_permutation_room"),
-                                plotlyOutput(outputId = "permutation_throughout_day")),
+                                plotOutput(outputId = "permutation_throughout_day")),
                        tabPanel("bookedness and occupancy",
                                 plotlyOutput(outputId = "booked_by_occupancy"),
                                 plotlyOutput(outputId = "occupancy_by_bookedness")),
@@ -76,7 +79,7 @@ ui <- dashboardPage(
                 ),
                 tabBox(id = "room_narrative_tabBox",
                        tabPanel("booking permutation summary",
-                                dataTableOutput(outputId = "permutation_table_room"),
+                                tableOutput(outputId = "permutation_table_room"),
                                 plotlyOutput(outputId = "permutation_pie_room"))
                 ),
                 tabBox(id = "room_data_tabBox",
@@ -109,9 +112,6 @@ ui <- dashboardPage(
                                 plotlyOutput(outputId = "room_types_by_occupancy")),
                        tabPanel("smoothing",
                                 plotlyOutput(outputId = "smoothing_chart")),
-                       tabPanel("Bookings by utilisation",
-                                plotlyOutput(outputId = "daily_bookings_by_occupancy_fill"),
-                                plotlyOutput(outputId = "daily_bookings_by_occupancy_stack")),
                        tabPanel("Bookings by permutation",
                                 selectInput(inputId = "selected_column",
                                             label = "Select grouping column",
@@ -130,7 +130,7 @@ ui <- dashboardPage(
                 
                 tabBox(id = "building_narrative_tabBox",
                        tabPanel("booking permutation summary",
-                                dataTableOutput(outputId = "permutation_table_building"),
+                                tableOutput(outputId = "permutation_table_building"),
                                 plotlyOutput(outputId = "permutation_pie_building"))
                        
                 ),
@@ -173,10 +173,26 @@ server <- function(input, output, session) {
   RV$bookings <- bookings
   RV$surveys <- get_surveys()
   
+  time_list <- get_time_list()
+  
   output$survey_picker <- renderUI({
     selectInput(inputId = "survey_picker",
                 label = "Select Occupeye Survey",
                 choices = unique(RV$surveys$name))
+  })
+  
+  output$start_time <- renderUI({
+    selectInput(inputId = "start_time",
+                label = "Start time:",
+                choices = time_list,
+                selected = "09:00")
+  })
+  
+  output$end_time <- renderUI({
+    selectInput(inputId = "end_time",
+                label = "End time:",
+                choices = time_list,
+                selected = "17:00")
   })
   
   observeEvent(input$survey_picker, {
@@ -194,7 +210,8 @@ server <- function(input, output, session) {
       RV$sensor_observations <- get_sensor_observations(RV$selected_survey_id,
                                                         input$download_date_range[[1]],
                                                         input$download_date_range[[2]]) %>%
-        change_p_to_person()
+        change_p_to_person() %>%
+        remove_non_business_days()
       
       RV$bookings <- get_bookings(RV$selected_survey_id,
                                   input$download_date_range[[1]],
@@ -206,7 +223,7 @@ server <- function(input, output, session) {
       
       RV$joined_observations <- get_joined_df(RV$sensor_observations,
                                               RV$sensorised_bookings %>% dplyr::filter(status != "CANCELLED")) %>%
-        filter_time_range("09:00","17:00")
+        filter_time_range(input$start_time,input$end_time)
       
       
       updateDateRangeInput(session,
@@ -326,7 +343,7 @@ server <- function(input, output, session) {
   })
   
   
-  output$permutation_table_room <- renderDataTable({
+  output$permutation_table_room <- renderTable({
     permutation_summary(room_observations())
   })
   
@@ -334,7 +351,7 @@ server <- function(input, output, session) {
     permutation_summary_pie(room_observations())
   })
   
-  output$permutation_throughout_day <- renderPlotly({
+  output$permutation_throughout_day <- renderPlot({
     occupancy_through_day(room_observations())
   })
   
@@ -354,18 +371,6 @@ server <- function(input, output, session) {
   # by building charts ------------------------------------------------------
   
   
-  
-  
-  output$daily_bookings_by_occupancy_fill <- renderPlotly({
-    booking_utilisation_by_date(building_observations())
-    
-  })
-  
-  output$daily_bookings_by_occupancy_stack <- renderPlotly({
-    booking_utilisation_by_date(building_observations(),
-                                "stack")
-    
-  })
   
   output$daily_rooms_by_occupancy <- renderPlotly({
     room_utilisation_by_date(building_observations())
@@ -411,7 +416,7 @@ server <- function(input, output, session) {
     )
   })
   
-  output$permutation_table_building <- renderDataTable({
+  output$permutation_table_building <- renderTable({
     permutation_summary(building_observations())
   })
   
@@ -445,15 +450,15 @@ server <- function(input, output, session) {
   # User abuse charts ------------------------------------------------------
   
   output$top_bookers <- renderDataTable({
-    DT::datatable(top_booked_hours_by_user(RV$bookings))
+    DT::datatable(top_booked_hours_by_user(RV$bookings), rownames = FALSE)
   })
   
   output$out_of_hours_bookers <- renderDataTable({
-    DT::datatable(out_of_hours_table(RV$bookings))
+    DT::datatable(out_of_hours_table(RV$bookings), rownames = FALSE)
   })
   
   output$no_showers <- renderDataTable({
-    DT::datatable(top_no_showers(RV$bookings))
+    DT::datatable(top_no_showers(RV$bookings), rownames = FALSE)
   })
   
   

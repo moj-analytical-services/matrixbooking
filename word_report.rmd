@@ -44,16 +44,16 @@ pie
 
 ## Overall utilisation
 
-The following charts show the rates of occupancy, by room type and by weekday.
-- Unused room: An unused room is a room which is not occupied for an entire day. To account for potential errors desks have been classified as unused where desk utilisation in the sample period is less than 15%.
-- Under Utilised rooms: For the purposes of this report an under utilised room is a used room which is used for less than 50% of the time during the day.
-In use: a room is used for more than 50% of the day.
-
 ```{r utilisation, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
-cat("\n\n## Occupancy by room type \n\n")
-print(room_utilisation_by_type(joined_observations))
+cat("\n\n## Usage by room type \n\n")
+print(room_utilisation_permutation(joined_observations, "devicetype"))
 
 cat("\n\n## Occupancy by weekday")
+weekday <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+print(room_utilisation_permutation(joined_observations %>%
+                                     mutate(weekday = weekdays(date)),
+                                   "weekday") +
+        scale_x_discrete(limits = weekday))
 
 ```
 

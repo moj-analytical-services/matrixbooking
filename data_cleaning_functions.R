@@ -106,3 +106,13 @@ add_cancelled_to_meeting <- function(bookings) {
 get_survey_id <- function(surveys, survey_name) {
   surveys %>% dplyr::filter(name == survey_name) %>% pull(survey_id)
 }
+
+get_time_list <- function() {
+  # Makes sequence of times for date picker input
+  
+  seq(from = ISOdatetime(2019, 1, 1, 0, 0, 0),
+      to = ISOdatetime(2019, 1, 1, 23, 50, 0),
+      by = "10 mins") %>%
+    strftime("%H:%M")
+  
+}

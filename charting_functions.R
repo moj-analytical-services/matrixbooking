@@ -20,12 +20,17 @@ room_utilisation_permutation <- function(joined_observations, varname) {
   
   expr <- sym(varname)
   
+  category_colours <- c("lightgrey",
+                        "sandybrown",
+                        "lemonchiffon",
+                        "darkseagreen3",
+                        "red")
+  
   
   utilisation_by_permutation <- get_booked_permutation(joined_observations) %>%
     count(booked_permutation, !!expr) %>%
     group_by(!!expr) %>%
-    mutate(prop = prop.table(n)) %>% 
-    dplyr::filter(booked_permutation != "0. Neither booked nor occupied")
+    mutate(prop = prop.table(n))
   
   
   
@@ -35,9 +40,9 @@ room_utilisation_permutation <- function(joined_observations, varname) {
                        fill = booked_permutation)) +
     geom_bar(position = "stack",
              stat = "identity") +
-    scale_fill_brewer(palette = "Spectral") +
+    scale_fill_manual(values = category_colours) +
     scale_y_continuous(labels = scales::percent, limits = c(0,1)) +
-    theme(axis.text.x = element_text(angle = 45)) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1)) +
     ggtitle("Room booking and occupancy")
   
 }
@@ -290,7 +295,8 @@ occupancy_through_day <- function(joined_observations) {
   category_colours <- c("lightgrey",
                         "sandybrown",
                         "lemonchiffon",
-                        "darkseagreen3")
+                        "darkseagreen3",
+                        "red")
   
   ggplot(my_data,
          aes(x = date,
@@ -300,8 +306,7 @@ occupancy_through_day <- function(joined_observations) {
     ylab("Time") +
     scale_y_discrete(breaks = every_nth(n = 6)) +
     scale_fill_manual(values = category_colours) +
-    theme(legend.title = element_blank()) +
-    theme_minimal()
+    theme(legend.title = element_blank())
     
     
     
@@ -402,6 +407,7 @@ closest_colour_plot <- function(r,g,b) {
 bookings_created_to_meeting_histogram <- function(bookings) {
   bookings %>%
     add_created_to_meeting() %>%
+    dplyr::filter(created_to_meeting <= 90) %>%
     ggplot(aes(x = created_to_meeting, fill = status)) +
     geom_histogram(alpha=0.5, position="identity", binwidth = 1) +
     labs(x = "Days between creating the booking and start of meeting")
@@ -411,6 +417,7 @@ cancelled_bookings_histogram <- function(cancelled_bookings) {
   
   cancelled_bookings %>%
     add_created_to_meeting() %>%
+    dplyr::filter(created_to_meeting <= 90) %>%
     ggplot(aes(x = created_to_meeting, fill = status_reason)) +
     geom_histogram(alpha=0.5, position="identity", binwidth = 1)
   
@@ -420,6 +427,7 @@ start_to_cancelled_bookings_histogram <- function(cancelled_bookings) {
   
   cancelled_bookings %>%
     add_created_to_cancelled() %>%
+    dplyr::filter(created_to_cancelled <= 90) %>%
     ggplot(aes(x = created_to_cancelled, fill = status_reason)) +
     geom_histogram(alpha=0.5, position="identity", binwidth = 1)
   
@@ -428,6 +436,7 @@ start_to_cancelled_bookings_histogram <- function(cancelled_bookings) {
 cancelled_to_meeting_histogram <- function(cancelled_bookings) {
   cancelled_bookings %>%
     add_cancelled_to_meeting() %>%
+    dplyr::filter(cancelled_to_meeting <= 90) %>%
     ggplot(aes(x = cancelled_to_meeting, fill = status_reason)) +
     geom_histogram(alpha=0.5, position="identity", binwidth = 1)
   
