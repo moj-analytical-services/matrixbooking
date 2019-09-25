@@ -101,21 +101,15 @@ ui <- dashboardPage(
                             options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
                             multiple = TRUE),
                 tabBox(id = "by_building_tabBox",
-                       tabPanel("room usage by date",
-                                plotlyOutput(outputId = "daily_rooms_by_occupancy")),
                        tabPanel("room usage by weekday",
-                                plotlyOutput(outputId = "weekday_rooms_by_occupancy"),
                                 plotlyOutput(outputId = "bookings_heatmap"),
                                 plotlyOutput(outputId = "occupancy_heatmap"),
                                 plotlyOutput(outputId = "weekday_throughout_day")),
-                       tabPanel("room usage by type",
-                                plotlyOutput(outputId = "room_types_by_occupancy")),
-                       tabPanel("smoothing",
-                                plotlyOutput(outputId = "smoothing_chart")),
                        tabPanel("Bookings by permutation",
                                 selectInput(inputId = "selected_column",
                                             label = "Select grouping column",
                                             choices = c("date",
+                                                        "weekday",
                                                         "roomname",
                                                         "devicetype"),
                                             selected = "date"),
@@ -320,14 +314,14 @@ server <- function(input, output, session) {
   })
   
   output$room_booking_histogram <- renderPlotly({
-    bookings_created_to_meeting_histogram(bookings %>%
+    bookings_created_to_meeting_histogram(RV$bookings %>%
                                             dplyr::filter(location_id %in% unique(room_observations()$location)
                                             )
     )
   })
   
   output$room_cancellations_histogram <- renderPlotly({
-    cancelled_bookings_histogram(bookings %>%
+    cancelled_bookings_histogram(RV$bookings %>%
                                    dplyr::filter(status == "CANCELLED",
                                                  location_id %in% unique(room_observations()$location)
                                    )
@@ -335,7 +329,7 @@ server <- function(input, output, session) {
   })
   
   output$room_time_to_cancellation_histogram <- renderPlotly({
-    start_to_cancelled_bookings_histogram(bookings %>%
+    start_to_cancelled_bookings_histogram(RV$bookings %>%
                                             dplyr::filter(status == "CANCELLED",
                                                           location_id %in% unique(room_observations()$location)
                                             )
@@ -372,22 +366,6 @@ server <- function(input, output, session) {
   
   
   
-  output$daily_rooms_by_occupancy <- renderPlotly({
-    room_utilisation_by_date(building_observations())
-  })
-  output$weekday_rooms_by_occupancy <- renderPlotly({
-    room_utilisation_by_weekday(building_observations())
-  })
-  
-  output$room_types_by_occupancy <- renderPlotly({
-    room_utilisation_by_type(building_observations())
-  })
-  
-  
-  output$smoothing_chart <- renderPlotly({
-    smoothing_chart(building_observations(), 0.5)
-  })
-  
   output$booked_permutation_building <- renderPlotly({
     room_utilisation_permutation(building_observations(),
                                  input$selected_column)
@@ -401,7 +379,7 @@ server <- function(input, output, session) {
   })
   
   output$building_cancellations_histogram <- renderPlotly({
-    cancelled_bookings_histogram(bookings %>%
+    cancelled_bookings_histogram(RV$bookings %>%
                                    dplyr::filter(status == "CANCELLED",
                                                  location_id %in% unique(building_observations()$location)
                                    )
@@ -409,7 +387,7 @@ server <- function(input, output, session) {
   })
   
   output$building_time_to_cancellation_histogram <- renderPlotly({
-    start_to_cancelled_bookings_histogram(bookings %>%
+    start_to_cancelled_bookings_histogram(RV$bookings %>%
                                             dplyr::filter(status == "CANCELLED",
                                                           location_id %in% unique(building_observations()$location)
                                             )
@@ -444,7 +422,7 @@ server <- function(input, output, session) {
   })
   
   output$locations_data_building <- renderDataTable({
-    DT::datatable(locations, filter = list(position = 'top', clear = FALSE))
+    DT::datatable(RV$locations, filter = list(position = 'top', clear = FALSE))
   })
   
   # User abuse charts ------------------------------------------------------
