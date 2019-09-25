@@ -270,17 +270,19 @@ permutation_summary_pie <- function(joined_observations) {
   category_colours <- c("lightgrey",
                         "sandybrown",
                         "lemonchiffon",
-                        "forestgreen")
+                        "forestgreen",
+                        "red")
   
   plot_ly(permutation_summary_table,
           labels = ~(booked_permutation),
           values = ~working_hours,
+          textposition = "outside",
           type = "pie",
           textinfo = "label+percent",
-          showlegend = FALSE,
+          showlegend = TRUE,
           marker = list(colors = category_colours),
           sort = F)
-  
+
 }
 
 occupancy_through_day <- function(joined_observations) {
@@ -477,7 +479,7 @@ time_of_day_heatmap <- function(joined_observations, varname) {
           y = ~fct_rev(time_of_day),
           z = ~count,
           type = "heatmap",
-          colors = "Reds") %>%
+          colors = colorRamp(c("#0571b0", "#92c5de", "#f7f7f7", "#f4a582", "#ca0020"))) %>%
     layout(title = case_when(varname == "is_booked" ~"most popular booking times",
                              TRUE ~ "Occupancy heatmap"),
            xaxis = list(title = ""),
@@ -531,7 +533,7 @@ top_booked_hours_by_user <- function(bookings) {
   bookings %>%
     mutate(booked_hours = difftime(time_to, time_from, units = "hours")) %>%
     group_by(booked_by_id, status) %>%
-    summarise(booked_hours = sum(booked_hours)) %>%
+    summarise(booked_hours = round(sum(booked_hours),2)) %>%
     spread(status, booked_hours) %>%
     arrange(desc(CONFIRMED))
   
