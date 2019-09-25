@@ -69,7 +69,7 @@ time_of_day_bar(joined_observations)
 
 ```{r charts_by_room, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
 
-room_list <- unique(params$joined_observations$roomname)
+room_list <- sort(unique(params$joined_observations$roomname))
 for(room in room_list) {
   cat("\n\n## ", room, "\n\n", sep = "")
   filtered_observations <- joined_observations %>%
