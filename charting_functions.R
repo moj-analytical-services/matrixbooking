@@ -26,9 +26,10 @@ room_utilisation_permutation <- function(joined_observations, varname) {
                         "darkseagreen3",
                         "red")
   
+  weekday_levels <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
   
   utilisation_by_permutation <- joined_observations %>%
-    mutate(weekday = weekdays(date)) %>%
+    mutate(weekday = factor(weekdays(date), levels = weekday_levels)) %>%
     get_booked_permutation() %>%
     count(booked_permutation, !!expr) %>%
     group_by(!!expr) %>%
