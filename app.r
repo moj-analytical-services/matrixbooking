@@ -356,7 +356,7 @@ server <- function(input, output, session) {
   })
   
   output$bookings_data_room <- renderDataTable({
-    DT::datatable(bookings %>%
+    DT::datatable(RV$bookings %>%
                     dplyr::filter(location_id %in% unique(room_observations()$location)),
                   filter = list(position = 'top', clear = FALSE))
   })
@@ -438,7 +438,7 @@ server <- function(input, output, session) {
   })
   
   output$bookings_data_building <- renderDataTable({
-    DT::datatable(bookings %>%
+    DT::datatable(RV$bookings %>%
                     dplyr::filter(location_id %in% unique(building_observations()$location)),
                   filter = list(position = 'top', clear = FALSE))
   })
