@@ -24,12 +24,6 @@ ui <- dashboardPage(
   dashboardHeader(title = "Matrixbooking app v0.1.1", titleWidth = 350),
   dashboardSidebar(
     sidebarMenu(
-      dateRangeInput(inputId = "date_filter",
-                     label = "pick a date range",
-                     start = max(date_list) %m-% months(1),
-                     end = max(date_list),
-                     min = min(date_list),
-                     max = max(date_list)),
       menuItem("Data Download", tabName = "data_download"),
       menuItem("Report by room", tabName = "by_room"),
       menuItem("Report by building", tabName = "by_building"),
@@ -220,12 +214,6 @@ server <- function(input, output, session) {
         filter_time_range(input$start_time,input$end_time)
       
       
-      updateDateRangeInput(session,
-                           inputId = "date_filter",
-                           min = input$download_date_range[[1]],
-                           max = input$download_date_range[[2]],
-                           start = input$download_date_range[[1]],
-                           end = input$download_date_range[[2]])
       updateSelectInput(session,
                         inputId = "room",
                         choices = sort(unique(RV$joined_observations$roomname)))
@@ -264,8 +252,8 @@ server <- function(input, output, session) {
                                                               overwrite = TRUE)
       withProgress(message = "Generating report...", {
         out <- rmarkdown::render(out_report, 
-                                 params = list(start_date = input$date_filter[1],
-                                               end_date = input$date_filter[2], 
+                                 params = list(start_date = input$download_date_range[1],
+                                               end_date = input$download_date_range[2], 
                                                joined_observations = joined_observations(),
                                                bookings = RV$bookings,
                                                survey_name = RV$survey_name))
@@ -278,8 +266,8 @@ server <- function(input, output, session) {
   # create reactive data object -----------------------------------------------------------
   joined_observations <- reactive({
     RV$joined_observations %>%
-      dplyr::filter(obs_datetime >= input$date_filter[1],
-                    obs_datetime <= paste0(input$date_filter[2], " 23:50"))
+      dplyr::filter(obs_datetime >= input$download_date_range[1],
+                    obs_datetime <= paste0(input$download_date_range[2], " 23:50"))
   })
   
   room_observations <- reactive({
