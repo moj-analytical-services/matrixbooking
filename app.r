@@ -11,7 +11,7 @@ source("charting_functions.R")
 source("airflow_queries.R")
 
 
-my_data <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/leeds.feather")
+my_data <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/joined_observations.feather")
 print("My_data loaded")
 bookings <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/bookings.feather")
 print("bookings loaded")
@@ -21,7 +21,7 @@ date_list <- lubridate::date(my_data$obs_datetime)
 
 
 ui <- dashboardPage(
-  dashboardHeader(title = "Matrixbooking app v0.1.1", titleWidth = 350),
+  dashboardHeader(title = "Matrixbooking app v0.2", titleWidth = 350),
   dashboardSidebar(
     sidebarMenu(
       menuItem("Data Download", tabName = "data_download"),
@@ -36,10 +36,9 @@ ui <- dashboardPage(
       tabItem(tabName = "data_download",
               fluidRow(
                 uiOutput("survey_picker"),
-                
                 dateRangeInput(inputId = "download_date_range", 
                                label = "Select time period to download",
-                               start = today() %m-% months(1),
+                               start = max(min(date_list), today() %m-% months(1)),
                                end = today() - 1),
                 uiOutput("start_time"),
                 uiOutput("end_time"),
@@ -74,7 +73,7 @@ ui <- dashboardPage(
                 tabBox(id = "room_narrative_tabBox",
                        tabPanel("booking permutation summary",
                                 tableOutput(outputId = "permutation_table_room"),
-                                plotlyOutput(outputId = "permutation_pie_room"))
+                                plotOutput(outputId = "permutation_pie_room"))
                 ),
                 tabBox(id = "room_data_tabBox",
                        width = 9,
@@ -119,7 +118,7 @@ ui <- dashboardPage(
                 tabBox(id = "building_narrative_tabBox",
                        tabPanel("booking permutation summary",
                                 tableOutput(outputId = "permutation_table_building"),
-                                plotlyOutput(outputId = "permutation_pie_building"))
+                                plotOutput(outputId = "permutation_pie_building"))
                        
                 ),
                 tabBox(id = "building_data_tabBox",
@@ -189,6 +188,16 @@ server <- function(input, output, session) {
     RV$selected_survey_id <- RV$surveys %>%
       dplyr::filter(name == input$survey_picker) %>%
       pull(survey_id)
+    
+    start_date <- RV$surveys %>% dplyr::filter(survey_id == RV$selected_survey_id) %>% pull(startdate)
+    end_date <- RV$surveys %>% dplyr::filter(survey_id == RV$selected_survey_id) %>% pull(enddate)
+    
+    updateDateRangeInput(session,
+                         inputId = "download_date_range",
+                         start = max(start_date, today() %m-% months(1)),
+                         min = start_date,
+                         max = end_date)
+    
   })
   
   observeEvent(input$download_data, {
@@ -199,7 +208,9 @@ server <- function(input, output, session) {
                                                         input$download_date_range[[1]],
                                                         input$download_date_range[[2]]) %>%
         change_p_to_person() %>%
-        remove_non_business_days()
+        remove_non_business_days() %>%
+        fix_bad_sensor_observations()
+        
       
       RV$bookings <- get_bookings(RV$selected_survey_id,
                                   input$download_date_range[[1]],
@@ -222,6 +233,22 @@ server <- function(input, output, session) {
                         inputId = "room_type",
                         choices = sort(unique(RV$joined_observations$devicetype)),
                         selected = sort(unique(RV$joined_observations$devicetype)))
+      
+      feather::write_feather(RV$joined_observations, "joined_observations.feather")
+      s3tools::write_file_to_s3("joined_observations.feather",
+                                "alpha-app-matrixbooking/joined_observations.feather",
+                                overwrite = T)
+      
+      feather::write_feather(RV$bookings, "bookings.feather")
+      s3tools::write_file_to_s3("bookings.feather",
+                                "alpha-app-matrixbooking/bookings.feather",
+                                overwrite = T)
+      
+      feather::write_feather(RV$locations, "locations.feather")
+      s3tools::write_file_to_s3("locations.feather",
+                                "alpha-app-matrixbooking/locations.feather",
+                                overwrite = T)
+      
     })
     
     
@@ -329,7 +356,7 @@ server <- function(input, output, session) {
     permutation_summary(room_observations())
   })
   
-  output$permutation_pie_room <- renderPlotly({
+  output$permutation_pie_room <- renderPlot({
     permutation_summary_pie(room_observations())
   })
   
@@ -386,7 +413,7 @@ server <- function(input, output, session) {
     permutation_summary(building_observations())
   })
   
-  output$permutation_pie_building <- renderPlotly({
+  output$permutation_pie_building <- renderPlot({
     permutation_summary_pie(building_observations())
   })
   
