@@ -45,8 +45,9 @@ room_utilisation_permutation <- function(joined_observations, varname) {
              stat = "identity") +
     scale_fill_manual(values = category_colours) +
     scale_y_continuous(labels = scales::percent, limits = c(0,1)) +
-    theme(axis.text.x = element_text(angle = 45, vjust = 1)) +
-    ggtitle("Room booking and occupancy")
+    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1)) +
+    ggtitle("Room booking and occupancy") +
+    labs(fill = "status")
   
 }
 
@@ -276,15 +277,31 @@ permutation_summary_pie <- function(joined_observations) {
                         "forestgreen",
                         "red")
   
-  plot_ly(permutation_summary_table,
-          labels = ~(booked_permutation),
-          values = ~working_hours,
-          textposition = "outside",
-          type = "pie",
-          textinfo = "label+percent",
-          showlegend = TRUE,
-          marker = list(colors = category_colours),
-          sort = F)
+  ggplot(permutation_summary_table,
+         mapping = aes(x = factor(1), y = working_hours, fill = booked_permutation)) +
+    geom_bar(stat = "identity") +
+    coord_polar("y") +
+    scale_fill_manual(values = category_colours) +
+    geom_text(aes(label = proportion), position = position_stack(vjust = 0.5)) +
+    theme_minimal() +
+    labs(fill = "status") +
+    theme(axis.text.x = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+    
+  
+  # plot_ly(permutation_summary_table,
+  #         labels = ~(booked_permutation),
+  #         values = ~working_hours,
+  #         textposition = "outside",
+  #         type = "pie",
+  #         textinfo = "label+percent",
+  #         showlegend = TRUE,
+  #         marker = list(colors = category_colours),
+  #         sort = F)
 
 }
 
