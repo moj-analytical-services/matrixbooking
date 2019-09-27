@@ -58,7 +58,7 @@ ui <- dashboardPage(
                        tabPanel("bookings by length",
                                 plotlyOutput(outputId = "booking_length_by_room")),
                        tabPanel("throughout the day",
-                                plotlyOutput(outputId = "booked_permutation_room"),
+                                plotOutput(outputId = "booked_permutation_room"),
                                 plotOutput(outputId = "permutation_throughout_day")),
                        tabPanel("bookedness and occupancy",
                                 plotlyOutput(outputId = "booked_by_occupancy"),
@@ -106,7 +106,7 @@ ui <- dashboardPage(
                                                         "roomname",
                                                         "devicetype"),
                                             selected = "date"),
-                                plotlyOutput(outputId = "booked_permutation_building")),
+                                plotOutput(outputId = "booked_permutation_building")),
                        tabPanel("Time to booking",
                                 plotlyOutput(outputId = "building_booking_histogram")),
                        tabPanel("Time to booking (cancellations)",
@@ -317,7 +317,7 @@ server <- function(input, output, session) {
     occupancy_during_booked_time(room_observations())
   })
   
-  output$booked_permutation_room <- renderPlotly({
+  output$booked_permutation_room <- renderPlot({
     room_utilisation_permutation(room_observations(), "date")
     
   })
@@ -381,7 +381,7 @@ server <- function(input, output, session) {
   
   
   
-  output$booked_permutation_building <- renderPlotly({
+  output$booked_permutation_building <- renderPlot({
     room_utilisation_permutation(building_observations(),
                                  input$selected_column)
   })

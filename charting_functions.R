@@ -8,11 +8,16 @@ library(forcats)
 get_booked_permutation <- function(joined_observations) {
   joined_observations %>% 
     mutate(booked_permutation = case_when(
+      is.na(sensor_value) ~ "invalid occupeye sensor reading",
       sensor_value == 1 & is_booked == 1 ~ "3. Booked and occupied",
       sensor_value == 1 & is_booked == 0 ~ "2. Occupied but not booked",
       sensor_value == 0 & is_booked == 1 ~ "1. Booked but not occupied",
-      sensor_value == 0 & is_booked == 0 ~ "0. Neither booked nor occupied",
-      is.na(sensor_value) ~ "invalid occupeye sensor reading") %>% factor()
+      sensor_value == 0 & is_booked == 0 ~ "0. Neither booked nor occupied") %>%
+        factor(levels = c("invalid occupeye sensor reading",
+                          "0. Neither booked nor occupied",
+                          "1. Booked but not occupied",
+                          "2. Occupied but not booked",
+                          "3. Booked and occupied"))
     )
 }
 
@@ -20,11 +25,11 @@ room_utilisation_permutation <- function(joined_observations, varname) {
   
   expr <- sym(varname)
   
-  category_colours <- c("lightgrey",
+  category_colours <- c("red",
+                        "lightgrey",
                         "sandybrown",
                         "lemonchiffon",
-                        "darkseagreen3",
-                        "red")
+                        "darkseagreen3")
   
   weekday_levels <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
   
@@ -45,9 +50,13 @@ room_utilisation_permutation <- function(joined_observations, varname) {
              stat = "identity") +
     scale_fill_manual(values = category_colours) +
     scale_y_continuous(labels = scales::percent, limits = c(0,1)) +
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1)) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
     ggtitle("Room booking and occupancy") +
-    labs(fill = "status")
+    labs(fill = "status")+
+    geom_text(aes(label = scales::percent(prop, accuracy = 1, suffix = "")),
+              position = position_fill(),
+              vjust = 1.5,
+              size = 3)
   
 }
 
@@ -271,7 +280,8 @@ permutation_summary_pie <- function(joined_observations) {
   permutation_summary_table <- permutation_summary(joined_observations) %>% 
     dplyr::filter(booked_permutation != "Total")
   
-  category_colours <- c("lightgrey",
+  category_colours <- c(
+                        "lightgrey",
                         "sandybrown",
                         "lemonchiffon",
                         "forestgreen",
@@ -291,7 +301,7 @@ permutation_summary_pie <- function(joined_observations) {
           axis.text.y = element_blank(),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank())
-    
+  
   
   # plot_ly(permutation_summary_table,
   #         labels = ~(booked_permutation),
@@ -302,7 +312,7 @@ permutation_summary_pie <- function(joined_observations) {
   #         showlegend = TRUE,
   #         marker = list(colors = category_colours),
   #         sort = F)
-
+  
 }
 
 occupancy_through_day <- function(joined_observations) {
@@ -314,11 +324,11 @@ occupancy_through_day <- function(joined_observations) {
     return(function(x) {x[c(rep(FALSE, n - 1), TRUE)]})
   }
   
-  category_colours <- c("lightgrey",
+  category_colours <- c("red",
+                        "lightgrey",
                         "sandybrown",
                         "lemonchiffon",
-                        "darkseagreen3",
-                        "red")
+                        "darkseagreen3")
   
   ggplot(my_data,
          aes(x = date,
@@ -329,9 +339,9 @@ occupancy_through_day <- function(joined_observations) {
     scale_y_discrete(breaks = every_nth(n = 6)) +
     scale_fill_manual(values = category_colours) +
     theme(legend.title = element_blank())
-    
-    
-    
+  
+  
+  
 }
 
 
