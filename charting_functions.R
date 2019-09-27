@@ -21,15 +21,19 @@ get_booked_permutation <- function(joined_observations) {
     )
 }
 
+get_permutation_colours <- function() {
+  c("invalid occupeye sensor reading"= "red",
+    "0. Neither booked nor occupied" = "lightgrey",
+    "1. Booked but not occupied" = "sandybrown",
+    "2. Occupied but not booked" = "lemonchiffon",
+    "3. Booked and occupied" = "darkseagreen3")
+}
+
 room_utilisation_permutation <- function(joined_observations, varname) {
   
   expr <- sym(varname)
   
-  category_colours <- c("red",
-                        "lightgrey",
-                        "sandybrown",
-                        "lemonchiffon",
-                        "darkseagreen3")
+  category_colours <- get_permutation_colours()
   
   weekday_levels <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
   
@@ -280,12 +284,7 @@ permutation_summary_pie <- function(joined_observations) {
   permutation_summary_table <- permutation_summary(joined_observations) %>% 
     dplyr::filter(booked_permutation != "Total")
   
-  category_colours <- c(
-                        "lightgrey",
-                        "sandybrown",
-                        "lemonchiffon",
-                        "forestgreen",
-                        "red")
+  category_colours <- get_permutation_colours()
   
   ggplot(permutation_summary_table,
          mapping = aes(x = factor(1), y = working_hours, fill = booked_permutation)) +
@@ -324,11 +323,7 @@ occupancy_through_day <- function(joined_observations) {
     return(function(x) {x[c(rep(FALSE, n - 1), TRUE)]})
   }
   
-  category_colours <- c("red",
-                        "lightgrey",
-                        "sandybrown",
-                        "lemonchiffon",
-                        "darkseagreen3")
+  category_colours <- get_permutation_colours()
   
   ggplot(my_data,
          aes(x = date,
@@ -549,15 +544,21 @@ time_of_day_bar <- function(joined_observations) {
   ggplotly(chart)
 }
 
-out_of_hours_table <- function(bookings) {
+out_of_hours_bookings <- function(bookings, start_time, end_time) {
   bookings %>%
-    dplyr::filter(!in_time_range(created, "09:00", "17:00")) %>%
+    dplyr::filter(!in_time_range(created, start_time, end_time))
+}
+
+
+out_of_hours_table <- function(bookings, start_time, end_time) {
+  out_of_hours_bookings(bookings, start_time, end_time) %>%
     group_by(booked_by_id) %>%
     summarise(count = n()) %>%
     arrange(desc(count))
   
   
 }
+
 
 top_booked_hours_by_user <- function(bookings) {
   bookings %>%
