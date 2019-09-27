@@ -137,14 +137,20 @@ ui <- dashboardPage(
         fluidRow(
           tabBox(id = "user_tables",
                  tabPanel("Top bookers",
-                          "This table shows the total number of hours booked by user.",
-                          dataTableOutput(outputId = "top_bookers")),
+                          "This table shows the total number of hours booked by user. By default, it's sorted by the number of confirmed hours booked",
+                          dataTableOutput(outputId = "top_bookers")
+                 ),
                  tabPanel("Out of hours bookers",
-                          "This table shows the number of bookings made by users outside working hours (9-5)",
-                          dataTableOutput(outputId = "out_of_hours_bookers")),
+                          "This table shows the number of bookings made by users outside working hours. Select working hours:",
+                          uiOutput(outputId = "out_of_hours_start_time"),
+                          uiOutput(outputId = "out_of_hours_end_time"),
+                          dataTableOutput(outputId = "out_of_hours_table"),
+                          dataTableOutput(outputId = "out_of_hours_bookers")
+                 ),
                  tabPanel("Top no-showers",
                           "This table shows the top users by number of meetings that were cancelled due to no-shows",
-                          dataTableOutput(outputId = "no_showers"))
+                          dataTableOutput(outputId = "no_showers")
+                 )
           )
         )
       )
@@ -182,6 +188,21 @@ server <- function(input, output, session) {
                 selected = "17:00")
   })
   
+  output$out_of_hours_start_time <- renderUI({
+    selectInput(inputId = "out_of_hours_start_time",
+                label = "Start time:",
+                choices = time_list,
+                selected = "09:00")
+  })
+  
+  output$out_of_hours_end_time <- renderUI({
+    selectInput(inputId = "out_of_hours_end_time",
+                label = "End time:",
+                choices = time_list,
+                selected = "17:00")
+  })
+  
+  
   observeEvent(input$survey_picker, {
     RV$survey_name <- input$survey_picker
     
@@ -210,7 +231,7 @@ server <- function(input, output, session) {
         change_p_to_person() %>%
         remove_non_business_days() %>%
         fix_bad_sensor_observations()
-        
+      
       
       RV$bookings <- get_bookings(RV$selected_survey_id,
                                   input$download_date_range[[1]],
@@ -367,11 +388,14 @@ server <- function(input, output, session) {
   output$bookings_data_room <- renderDataTable({
     DT::datatable(RV$bookings %>%
                     dplyr::filter(location_id %in% unique(room_observations()$location)),
-                  filter = list(position = 'top', clear = FALSE))
+                  filter = list(position = 'top', clear = FALSE),
+                  options = list(scrollX = TRUE))
   })
   
   output$locations_data_room <- renderDataTable({
-    DT::datatable(locations, filter = list(position = 'top', clear = FALSE))
+    DT::datatable(locations,
+                  filter = list(position = 'top', clear = FALSE),
+                  options = list(scrollX = TRUE))
   })
   
   
@@ -433,11 +457,13 @@ server <- function(input, output, session) {
   output$bookings_data_building <- renderDataTable({
     DT::datatable(RV$bookings %>%
                     dplyr::filter(location_id %in% unique(building_observations()$location)),
-                  filter = list(position = 'top', clear = FALSE))
+                  filter = list(position = 'top', clear = FALSE),
+                  options = list(scrollX = TRUE))
   })
   
   output$locations_data_building <- renderDataTable({
-    DT::datatable(RV$locations, filter = list(position = 'top', clear = FALSE))
+    DT::datatable(RV$locations, filter = list(position = 'top', clear = FALSE),
+                  options = list(scrollX = TRUE))
   })
   
   # User abuse charts ------------------------------------------------------
@@ -446,9 +472,22 @@ server <- function(input, output, session) {
     DT::datatable(top_booked_hours_by_user(RV$bookings), rownames = FALSE)
   })
   
-  output$out_of_hours_bookers <- renderDataTable({
-    DT::datatable(out_of_hours_table(RV$bookings), rownames = FALSE)
+  output$out_of_hours_table <- renderDataTable({
+    DT::datatable(out_of_hours_table(RV$bookings,
+                                     input$out_of_hours_start_time,
+                                     input$out_of_hours_end_time),
+                  rownames = FALSE,
+                  options = list(scrollX = TRUE))
   })
+  
+  output$out_of_hours_bookers <- renderDataTable({
+    DT::datatable(out_of_hours_bookings(RV$bookings,
+                                        input$out_of_hours_start_time,
+                                        input$out_of_hours_end_time),
+                  rownames = FALSE,
+                  options = list(scrollX = TRUE))
+  })
+  
   
   output$no_showers <- renderDataTable({
     DT::datatable(top_no_showers(RV$bookings), rownames = FALSE)
