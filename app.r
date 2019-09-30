@@ -8,7 +8,7 @@ library(DT)
 
 source("data_cleaning_functions.R")
 source("charting_functions.R")
-source("airflow_queries.R")
+source("athena_queries.R")
 
 
 my_data <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/joined_observations.feather")
