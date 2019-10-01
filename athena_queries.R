@@ -17,10 +17,11 @@ get_sensor_observations <- function(survey_id, start_date, end_date) {
 }
 
 get_bookings <- function(survey_id, start_date, end_date) {
-  sql <- glue("select b.* from matrixbooking_app_db.bookings as b
+  sql <- glue("select distinct b.* from matrixbooking_app_db.bookings as b
                          inner join matrixbooking_app_db.locations as l
                          on b.location_id = l.id
                          where l.survey_id = {survey_id}
+                         and shareid = 'nan'
                          and time_from >= timestamp '{start_date} 00:00'
                          and time_to <= timestamp '{end_date} 23:50'")
   print(sql)

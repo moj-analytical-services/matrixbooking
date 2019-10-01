@@ -48,12 +48,16 @@ pie
 cat("\n\n## Usage by room type \n\n")
 print(room_utilisation_permutation(joined_observations, "devicetype"))
 
-cat("\n\n## Occupancy by weekday")
-weekday <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
-print(room_utilisation_permutation(joined_observations %>%
-                                     mutate(weekday = weekdays(date)),
-                                   "weekday") +
-        scale_x_discrete(limits = weekday))
+cat("\n\n## Usage by weekday \n\n")
+print(room_utilisation_permutation(joined_observations, "weekday"))
+
+cat("\n\n## Occupancy heatmap \n\n")
+time_of_day_heatmap(joined_observations, "sensor_value")
+
+cat("\n\n## Bookings heatmap \n\n")
+time_of_day_heatmap(joined_observations, "is_booked")
+
+time_of_day_bar(joined_observations)
 
 ```
 
@@ -61,7 +65,7 @@ print(room_utilisation_permutation(joined_observations %>%
 
 ```{r charts_by_room, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
 
-room_list <- unique(params$joined_observations$roomname)
+room_list <- sort(unique(params$joined_observations$roomname))
 for(room in room_list) {
   cat("\n\n## ", room, "\n\n", sep = "")
   filtered_observations <- joined_observations %>%
