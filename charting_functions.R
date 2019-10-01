@@ -226,10 +226,10 @@ room_booking_length_histogram <- function(joined_observations) {
     dplyr::filter(is_booked == 1) %>%
     group_by(id) %>%
     mutate(booked_hours = is_booked/6,
-           booking_length = sum(booked_hours)) %>%
+           booking_length = sum(booked_hours, na.rm = T)) %>%
     group_by(booking_length) %>%
-    summarise(booking_hours = sum(booked_hours),
-              utilisation = sum(sensor_value)/6) %>%
+    summarise(booking_hours = sum(booked_hours, na.rm = T),
+              utilisation = sum(sensor_value, na.rm = T)/6) %>%
     mutate(freq = booking_hours/booking_length)
   
   utilisation <- scales::percent(booking_lengths$utilisation / booking_lengths$booking_hours)
@@ -497,18 +497,22 @@ time_of_day_heatmap <- function(joined_observations, varname) {
     mutate(time_of_day = strftime(obs_datetime, format="%H:%M"),
            weekday = weekdays(obs_datetime)) %>%
     group_by(weekday, time_of_day) %>%
-    summarise(count = sum(!!expr, na.rm = T))
+    summarise(utilisation = mean(!!expr, na.rm = T))
   
   plot_ly(data,
           x = ~factor(weekday, levels = weekdays),
           y = ~fct_rev(time_of_day),
-          z = ~count,
+          z = ~utilisation,
           type = "heatmap",
           colors = colorRamp(c("#0571b0", "#92c5de", "#f7f7f7", "#f4a582", "#ca0020"))) %>%
     layout(title = case_when(varname == "is_booked" ~"most popular booking times",
                              TRUE ~ "Occupancy heatmap"),
            xaxis = list(title = ""),
-           yaxis = list(title = "Time of day"))
+           yaxis = list(title = "Time of day",
+                        type = "category",
+                        autotick = F,
+                        dtick = 6,
+                        range = c("09:00", "16:50")))
   
 }
 
