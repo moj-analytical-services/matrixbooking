@@ -21,7 +21,7 @@ date_list <- lubridate::date(my_data$obs_datetime)
 
 
 ui <- dashboardPage(
-  dashboardHeader(title = "Matrixbooking app v0.2", titleWidth = 350),
+  dashboardHeader(title = "Matrixbooking app v0.3", titleWidth = 350),
   dashboardSidebar(
     sidebarMenu(
       menuItem("Data Download", tabName = "data_download"),
