@@ -215,7 +215,7 @@ server <- function(input, output, session) {
     
     updateDateRangeInput(session,
                          inputId = "download_date_range",
-                         start = max(start_date, today() %m-% months(1)),
+                         start = max(as.Date(start_date), today() %m-% months(1)),
                          min = start_date,
                          max = end_date)
     
