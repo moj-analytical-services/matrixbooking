@@ -116,3 +116,17 @@ get_time_list <- function() {
     strftime("%H:%M")
   
 }
+
+get_room_list <- function(joined_observations) {
+  unique_rooms <- sensor_observations %>%
+    mutate(floor = as.numeric(floor)) %>%
+    select(floor, roomname) %>%
+    distinct() %>%
+    arrange(floor) %>%
+    mutate(renamed_floor = fct_reorder(paste0("Floor ", floor), floor))
+  
+  room_list <- lapply(split(unique_rooms$roomname, unique_rooms$renamed_floor),
+                      as.list)
+  
+  room_list
+}

@@ -40,7 +40,7 @@ ui <- dashboardPage(
                            multiple = TRUE),
                pickerInput(inputId = "building_room",
                            label = "Select room(s)",
-                           choices = sort(unique(my_data$roomname)),
+                           choices = get_room_list(my_data),
                            selected = unique(my_data$roomname),
                            options = list(`actions-box` = TRUE,
                                           `selected-text-format` = "count > 4"),
@@ -57,11 +57,11 @@ ui <- dashboardPage(
                            choices = sort(unique(my_data$category_3)),
                            selected = unique(my_data$category_3),
                            options = list(`actions-box` = TRUE,
-                                          `selected-text-format` = "count > 4"),
+                                          `selected-text-format` = "count > 2"),
                            multiple = TRUE),
                pickerInput(inputId = "floor",
                            label = "Select floor(s)",
-                           choices = sort(unique(my_data$floor)),
+                           choices = sort(as.numeric(unique(my_data$floor))),
                            selected = unique(my_data$floor),
                            options = list(`actions-box` = TRUE,
                                           `selected-text-format` = "count > 4"),
@@ -258,8 +258,12 @@ server <- function(input, output, session) {
       dplyr::filter(name == input$survey_picker) %>%
       pull(survey_id)
     
-    start_date <- RV$surveys %>% dplyr::filter(survey_id == RV$selected_survey_id) %>% pull(startdate)
-    end_date <- RV$surveys %>% dplyr::filter(survey_id == RV$selected_survey_id) %>% pull(enddate)
+    start_date <- RV$surveys %>%
+      dplyr::filter(survey_id == RV$selected_survey_id) %>%
+      pull(startdate)
+    end_date <- RV$surveys %>%
+      dplyr::filter(survey_id == RV$selected_survey_id) %>%
+      pull(enddate)
     
     updateDateRangeInput(session,
                          inputId = "download_date_range",
@@ -290,9 +294,11 @@ server <- function(input, output, session) {
       RV$sensorised_bookings <- convert_bookings_to_sensors(RV$bookings)
       
       RV$joined_observations <- get_joined_df(RV$sensor_observations,
-                                              RV$sensorised_bookings %>% dplyr::filter(status != "CANCELLED")) %>%
+                                              RV$sensorised_bookings %>%
+                                                dplyr::filter(status != "CANCELLED")) %>%
         filter_time_range(input$start_time,input$end_time)
       
+      room_list <- get_room_list(RV$joined_observations)
       
       updateSelectInput(session,
                         inputId = "room",
@@ -305,8 +311,8 @@ server <- function(input, output, session) {
       
       updatePickerInput(session,
                         inputId = "building_room",
-                        choices = sort(unique(RV$joined_observations$roomname)),
-                        selected = sort(unique(RV$joined_observations$roomname)))
+                        choices = room_list,
+                        selected = unique(RV$joined_observations$roomname))
       
       updatePickerInput(session,
                         inputId = "directorate",
