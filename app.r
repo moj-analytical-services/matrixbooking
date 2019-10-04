@@ -18,7 +18,11 @@ print("bookings loaded")
 locations <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/locations.feather")
 print("locations loaded")
 date_list <- lubridate::date(my_data$obs_datetime)
-
+report_groupings <- c("By Directorate" = "category_1",
+                      "By Floor" = "floor",
+                      "By restriction level" = "category_3",
+                      "By Room size" = "devicetype",
+                      "By Room" = "roomname")
 
 # ui ----------------------------------------------------------------------
 
@@ -88,6 +92,9 @@ ui <- dashboardPage(
                                 
                        ),
                        tabPanel("Report download",
+                                checkboxGroupInput(inputId = "report_groups",
+                                                   label = "Select variables to report on",
+                                                    choices = report_groupings),
                                 downloadButton(outputId = "download_report",
                                                label = "download word report"))
                 )
@@ -382,7 +389,8 @@ server <- function(input, output, session) {
                                                end_date = input$download_date_range[2], 
                                                joined_observations = building_observations(),
                                                bookings = RV$bookings,
-                                               survey_name = RV$survey_name))
+                                               survey_name = RV$survey_name,
+                                               report_groups = input$report_groups))
         file.rename(out, file)
       })
       
