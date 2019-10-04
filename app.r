@@ -30,6 +30,42 @@ ui <- dashboardPage(
       menuItem("Data Download", tabName = "data_download"),
       menuItem("Report by room", tabName = "by_room"),
       menuItem("Report by building", tabName = "by_building"),
+      menuItem("Show/hide building filters", tabName = "building_filters",
+               pickerInput(inputId = "room_type",
+                           label = "Select Room Type(s)",
+                           choices = sort(unique(my_data$devicetype)),
+                           selected = unique(my_data$devicetype),
+                           options = list(`actions-box` = TRUE,
+                                          `selected-text-format` = "count > 4"),
+                           multiple = TRUE),
+               pickerInput(inputId = "building_room",
+                           label = "Select room(s)",
+                           choices = sort(unique(my_data$roomname)),
+                           selected = unique(my_data$roomname),
+                           options = list(`actions-box` = TRUE,
+                                          `selected-text-format` = "count > 4"),
+                           multiple = TRUE),
+               pickerInput(inputId = "directorate",
+                           label = "Select directorate(s)",
+                           choices = unique(my_data$category_1),
+                           selected = unique(my_data$category_1),
+                           options = list(`actions-box` = TRUE,
+                                          `selected-text-format` = "count > 4"),
+                           multiple = TRUE),
+               pickerInput(inputId = "restriction",
+                           label = "Select restriction type(s)",
+                           choices = sort(unique(my_data$category_3)),
+                           selected = unique(my_data$category_3),
+                           options = list(`actions-box` = TRUE,
+                                          `selected-text-format` = "count > 4"),
+                           multiple = TRUE),
+               pickerInput(inputId = "floor",
+                           label = "Select floor(s)",
+                           choices = sort(unique(my_data$floor)),
+                           selected = unique(my_data$floor),
+                           options = list(`actions-box` = TRUE,
+                                          `selected-text-format` = "count > 4"),
+                           multiple = TRUE)),
       menuItem("Top users", tabName = "by_users")
     )
   ),
@@ -38,16 +74,23 @@ ui <- dashboardPage(
     tabItems(
       tabItem(tabName = "data_download",
               fluidRow(
-                uiOutput("survey_picker"),
-                dateRangeInput(inputId = "download_date_range", 
-                               label = "Select time period to download",
-                               start = max(min(date_list), today() %m-% months(1)),
-                               end = today() - 1),
-                uiOutput("start_time"),
-                uiOutput("end_time"),
-                
-                actionButton(inputId = "download_data", label = "download data"),
-                downloadButton(outputId = "download_report", label = "download word report")
+                tabBox(id = "controls",
+                       tabPanel("Data download",
+                                uiOutput("survey_picker"),
+                                dateRangeInput(inputId = "download_date_range", 
+                                               label = "Select time period to download",
+                                               start = max(min(date_list), today() %m-% months(1)),
+                                               end = today() - 1),
+                                uiOutput("start_time"),
+                                uiOutput("end_time"),
+                                
+                                actionButton(inputId = "download_data", label = "download data")
+                                
+                       ),
+                       tabPanel("Report download",
+                                downloadButton(outputId = "download_report",
+                                               label = "download word report"))
+                )
               )
       ),
       
@@ -90,12 +133,6 @@ ui <- dashboardPage(
       
       tabItem(tabName = "by_building",
               fluidRow(
-                pickerInput(inputId = "room_type",
-                            label = "Select Room Type(s)",
-                            choices = sort(unique(my_data$devicetype)),
-                            selected = unique(my_data$devicetype),
-                            options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
-                            multiple = TRUE),
                 tabBox(id = "by_building_tabBox",
                        tabPanel("room usage by weekday",
                                 plotlyOutput(outputId = "bookings_heatmap"),
@@ -171,6 +208,7 @@ server <- function(input, output, session) {
   RV <- reactiveValues()
   RV$joined_observations <- my_data
   RV$bookings <- bookings
+  RV$locations <- locations
   RV$surveys <- get_surveys()
   
   time_list <- get_time_list()
@@ -178,7 +216,7 @@ server <- function(input, output, session) {
   output$survey_picker <- renderUI({
     selectInput(inputId = "survey_picker",
                 label = "Select Occupeye Survey",
-                choices = unique(RV$surveys$name))
+                choices = sort(unique(RV$surveys$name)))
   })
   
   output$start_time <- renderUI({
@@ -265,6 +303,26 @@ server <- function(input, output, session) {
                         choices = sort(unique(RV$joined_observations$devicetype)),
                         selected = sort(unique(RV$joined_observations$devicetype)))
       
+      updatePickerInput(session,
+                        inputId = "building_room",
+                        choices = sort(unique(RV$joined_observations$roomname)),
+                        selected = sort(unique(RV$joined_observations$roomname)))
+      
+      updatePickerInput(session,
+                        inputId = "directorate",
+                        choices = sort(unique(RV$joined_observations$category_1)),
+                        selected = sort(unique(RV$joined_observations$category_1)))
+      
+      updatePickerInput(session,
+                        inputId = "floor",
+                        choices = sort(unique(RV$joined_observations$floor)),
+                        selected = sort(unique(RV$joined_observations$floor)))
+      
+      updatePickerInput(session,
+                        inputId = "restriction",
+                        choices = sort(unique(RV$joined_observations$category_3)),
+                        selected = sort(unique(RV$joined_observations$category_3)))
+      
       feather::write_feather(RV$joined_observations, "joined_observations.feather")
       s3tools::write_file_to_s3("joined_observations.feather",
                                 "alpha-app-matrixbooking/joined_observations.feather",
@@ -316,7 +374,7 @@ server <- function(input, output, session) {
         out <- rmarkdown::render(out_report, 
                                  params = list(start_date = input$download_date_range[1],
                                                end_date = input$download_date_range[2], 
-                                               joined_observations = joined_observations(),
+                                               joined_observations = building_observations(),
                                                bookings = RV$bookings,
                                                survey_name = RV$survey_name))
         file.rename(out, file)
@@ -340,7 +398,11 @@ server <- function(input, output, session) {
   
   building_observations <- reactive({
     joined_observations() %>%
-      dplyr::filter(devicetype %in% input$room_type)
+      dplyr::filter(devicetype %in% input$room_type,
+                    category_1 %in% input$directorate,
+                    category_3 %in% input$restriction,
+                    floor %in% input$floor,
+                    roomname %in% input$building_room)
   })
   
   # by room charts ----------------------------------------------------------
@@ -408,7 +470,7 @@ server <- function(input, output, session) {
   })
   
   output$locations_data_room <- renderDataTable({
-    DT::datatable(locations,
+    DT::datatable(RV$locations,
                   filter = list(position = 'top', clear = FALSE),
                   options = list(scrollX = TRUE))
   })
