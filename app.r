@@ -411,7 +411,7 @@ server <- function(input, output, session) {
   })
   
   output$building_booking_histogram <- renderPlotly({
-    bookings_created_to_meeting_histogram(bookings %>%
+    bookings_created_to_meeting_histogram(RV$bookings %>%
                                             dplyr::filter(location_id %in% unique(building_observations()$location)
                                             )
     )
