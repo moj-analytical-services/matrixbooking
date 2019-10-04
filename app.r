@@ -20,6 +20,9 @@ print("locations loaded")
 date_list <- lubridate::date(my_data$obs_datetime)
 
 
+# ui ----------------------------------------------------------------------
+
+
 ui <- dashboardPage(
   dashboardHeader(title = "Matrixbooking app v0.3.1", titleWidth = 350),
   dashboardSidebar(
@@ -159,6 +162,10 @@ ui <- dashboardPage(
   )
 )
 
+
+# server ------------------------------------------------------------------
+
+
 server <- function(input, output, session) {
   
   RV <- reactiveValues()
@@ -201,6 +208,9 @@ server <- function(input, output, session) {
                 choices = time_list,
                 selected = "17:00")
   })
+  
+  
+  # observeEvents -----------------------------------------------------------
   
   
   observeEvent(input$survey_picker, {
@@ -282,6 +292,10 @@ server <- function(input, output, session) {
     
   })
   
+  
+  # report downloader -------------------------------------------------------
+  
+  
   output$download_report <- downloadHandler(
     filename = "matrixbooking report.docx",
     content = function(file) {
@@ -309,7 +323,8 @@ server <- function(input, output, session) {
       })
       
       
-    })
+    }
+  )
   
   # create reactive data object -----------------------------------------------------------
   joined_observations <- reactive({
