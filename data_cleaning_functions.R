@@ -118,7 +118,7 @@ get_time_list <- function() {
 }
 
 get_room_list <- function(joined_observations) {
-  unique_rooms <- sensor_observations %>%
+  unique_rooms <- joined_observations %>%
     mutate(floor = as.numeric(floor)) %>%
     select(floor, roomname) %>%
     distinct() %>%
@@ -130,3 +130,4 @@ get_room_list <- function(joined_observations) {
   
   room_list
 }
+
