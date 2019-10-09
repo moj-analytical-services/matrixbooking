@@ -57,7 +57,7 @@ time_of_day_heatmap(joined_observations, "sensor_value")
 
 cat("\n\n### Bookings heatmap \n\n")
 time_of_day_heatmap(joined_observations, "is_booked")
-cat("\n\n### Bookings and Occupancy bar chart")
+cat("\n\n### Bookings and Occupancy bar chart \n\n")
 time_of_day_bar(joined_observations)
 
 ```
