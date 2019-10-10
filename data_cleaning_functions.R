@@ -7,7 +7,7 @@ convert_bookings_to_sensors <- function(bookings) {
     rowwise() %>% 
     mutate(obs_booked_datetime = list(seq(lubridate::floor_date(time_from, "10 minutes"), time_to, by = "10 mins"))) %>% 
     unnest() %>%
-    dplyr::filter(obs_booked_datetime != time_to)
+    dplyr::filter(obs_booked_datetime != lubridate::floor_date(time_to, "10 minutes"))
   
 }
 
