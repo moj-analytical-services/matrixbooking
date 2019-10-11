@@ -216,14 +216,22 @@ server <- function(input, output, session) {
   RV$joined_observations <- my_data
   RV$bookings <- bookings
   RV$locations <- locations
-  RV$surveys <- get_surveys()
+  
+  surveys <- get_surveys()
+  RV$surveys <- surveys
   
   time_list <- get_time_list()
+  
+  initial_survey_id <- unique(locations$survey_id)
+  initial_survey_name <- surveys %>%
+    dplyr::filter(survey_id == initial_survey_id) %>%
+    pull(name)
   
   output$survey_picker <- renderUI({
     selectInput(inputId = "survey_picker",
                 label = "Select Occupeye Survey",
-                choices = sort(unique(RV$surveys$name)))
+                choices = sort(unique(RV$surveys$name)),
+                selected = initial_survey_name)
   })
   
   output$start_time <- renderUI({
