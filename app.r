@@ -84,7 +84,7 @@ ui <- dashboardPage(
                                 dateRangeInput(inputId = "download_date_range", 
                                                label = "Select time period to download",
                                                start = max(min(date_list), today() %m-% months(1)),
-                                               end = today() - 1),
+                                               end = min(max(date_list), today() - 1)),
                                 uiOutput("start_time"),
                                 uiOutput("end_time"),
                                 
@@ -284,7 +284,7 @@ server <- function(input, output, session) {
                          inputId = "download_date_range",
                          start = max(as.Date(start_date), today() %m-% months(1)),
                          min = start_date,
-                         max = end_date)
+                         max = min(as.Date(end_date), today()-1))
     
   })
   
