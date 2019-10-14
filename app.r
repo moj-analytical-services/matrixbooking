@@ -65,7 +65,7 @@ ui <- dashboardPage(
                            multiple = TRUE),
                pickerInput(inputId = "floor",
                            label = "Select floor(s)",
-                           choices = sort(as.numeric(unique(my_data$floor))),
+                           choices = sort(unique(my_data$floor)),
                            selected = unique(my_data$floor),
                            options = list(`actions-box` = TRUE,
                                           `selected-text-format` = "count > 4"),
@@ -297,7 +297,8 @@ server <- function(input, output, session) {
                                                         input$download_date_range[[2]]) %>%
         change_p_to_person() %>%
         remove_non_business_days() %>%
-        fix_bad_sensor_observations()
+        fix_bad_sensor_observations() %>%
+        mutate(floor = as.numeric(floor))
       
       
       RV$bookings <- get_bookings(RV$selected_survey_id,
