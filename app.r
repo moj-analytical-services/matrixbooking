@@ -5,6 +5,7 @@ library(plotly)
 library(lubridate)
 library(dbtools)
 library(DT)
+library(forcats)
 
 source("data_cleaning_functions.R")
 source("charting_functions.R")
@@ -28,7 +29,7 @@ report_groupings <- c("By Directorate" = "category_1",
 
 
 ui <- dashboardPage(
-  dashboardHeader(title = "Matrixbooking app v0.4.1", titleWidth = 350),
+  dashboardHeader(title = "Matrixbooking app v0.4.2", titleWidth = 350),
   dashboardSidebar(
     sidebarMenu(
       menuItem("Data Download", tabName = "data_download"),
@@ -312,7 +313,8 @@ server <- function(input, output, session) {
       RV$joined_observations <- get_joined_df(RV$sensor_observations,
                                               RV$sensorised_bookings %>%
                                                 dplyr::filter(status != "CANCELLED")) %>%
-        filter_time_range(input$start_time,input$end_time)
+        filter_time_range(input$start_time,input$end_time) %>%
+        mutate(devicetype = fct_reorder(devicetype, as.numeric(capacity), na.rm = T))
       
       room_list <- get_room_list(RV$joined_observations)
       
