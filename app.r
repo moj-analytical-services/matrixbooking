@@ -32,7 +32,7 @@ report_groupings <- c("By Directorate" = "category_1",
 
 
 ui <- dashboardPage(
-  dashboardHeader(title = "Matrixbooking app v0.4.2", titleWidth = 350),
+  dashboardHeader(title = "Matrixbooking app v0.5", titleWidth = 350),
   dashboardSidebar(
     sidebarMenu(
       menuItem("Data Download", tabName = "data_download"),
