@@ -64,7 +64,13 @@ get_joined_df <- function(full_occupeye_df, sensorised_bookings) {
               by=c("location"= "location_id",
                    "obs_datetime" = "obs_booked_datetime")) %>%
     mutate(is_booked = recode(id, .default = 1, .missing = 0),
-           date = date(obs_datetime))
+           date = date(obs_datetime),
+           floor = as.numeric(floor),
+           devicetype = fct_reorder(devicetype, as.numeric(capacity), na.rm = T),
+           roomname = fct_reorder(roomname, floor, na.rm = T))  %>%
+    change_p_to_person() %>%
+    remove_non_business_days() %>%
+    fix_bad_sensor_observations()
 }
 
 
@@ -119,11 +125,11 @@ get_time_list <- function() {
 
 get_room_list <- function(joined_observations) {
   unique_rooms <- joined_observations %>%
-    mutate(floor = as.numeric(floor)) %>%
     select(floor, roomname) %>%
     distinct() %>%
     arrange(floor) %>%
-    mutate(renamed_floor = fct_reorder(paste0("Floor ", floor), floor))
+    mutate(roomname = as.character(roomname),
+           renamed_floor = fct_reorder(paste0("Floor ", floor), floor))
   
   room_list <- lapply(split(unique_rooms$roomname, unique_rooms$renamed_floor),
                       as.list)

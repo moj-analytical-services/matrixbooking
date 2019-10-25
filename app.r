@@ -6,11 +6,12 @@ library(lubridate)
 library(dbtools)
 library(DT)
 library(forcats)
+library(reticulate)
 
 source("data_cleaning_functions.R")
 source("charting_functions.R")
 source("athena_queries.R")
-
+source_python("api_requests.py")
 
 my_data <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/joined_observations.feather")
 print("My_data loaded")
@@ -18,6 +19,8 @@ bookings <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/
 print("bookings loaded")
 locations <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/locations.feather")
 print("locations loaded")
+all_locations <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/all_locations.feather")
+
 date_list <- lubridate::date(my_data$obs_datetime)
 report_groupings <- c("By Directorate" = "category_1",
                       "By Floor" = "floor",
@@ -71,7 +74,8 @@ ui <- dashboardPage(
                            options = list(`actions-box` = TRUE,
                                           `selected-text-format` = "count > 4"),
                            multiple = TRUE)),
-      menuItem("Top users", tabName = "by_users")
+      menuItem("Top users", tabName = "by_users"),
+      menuItem("matrixbooking locations", tabName = "all_locations")
     )
   ),
   
@@ -95,7 +99,7 @@ ui <- dashboardPage(
                        tabPanel("Report download",
                                 checkboxGroupInput(inputId = "report_groups",
                                                    label = "Select variables to report on",
-                                                    choices = report_groupings),
+                                                   choices = report_groupings),
                                 downloadButton(outputId = "download_report",
                                                label = "download word report"))
                 )
@@ -201,6 +205,17 @@ ui <- dashboardPage(
                  )
           )
         )
+      ),
+      
+      tabItem(
+        tabName = "all_locations",
+        box(
+          width = 9,
+          actionButton(inputId = "update_locations",
+                       label = "Update"),
+          downloadButton("download_locations"),
+          dataTableOutput(outputId = "all_locations")
+        )
       )
       
     )
@@ -217,6 +232,7 @@ server <- function(input, output, session) {
   RV$joined_observations <- my_data
   RV$bookings <- bookings
   RV$locations <- locations
+  RV$all_locations <- all_locations
   
   surveys <- get_surveys()
   RV$surveys <- surveys
@@ -295,11 +311,7 @@ server <- function(input, output, session) {
     withProgress(message = glue("Downloading data from {input$survey_picker}"), {
       RV$sensor_observations <- get_sensor_observations(RV$selected_survey_id,
                                                         input$download_date_range[[1]],
-                                                        input$download_date_range[[2]]) %>%
-        change_p_to_person() %>%
-        remove_non_business_days() %>%
-        fix_bad_sensor_observations() %>%
-        mutate(floor = as.numeric(floor))
+                                                        input$download_date_range[[2]])
       
       
       RV$bookings <- get_bookings(RV$selected_survey_id,
@@ -313,8 +325,7 @@ server <- function(input, output, session) {
       RV$joined_observations <- get_joined_df(RV$sensor_observations,
                                               RV$sensorised_bookings %>%
                                                 dplyr::filter(status != "CANCELLED")) %>%
-        filter_time_range(input$start_time,input$end_time) %>%
-        mutate(devicetype = fct_reorder(devicetype, as.numeric(capacity), na.rm = T))
+        filter_time_range(input$start_time,input$end_time)
       
       room_list <- get_room_list(RV$joined_observations)
       
@@ -371,6 +382,24 @@ server <- function(input, output, session) {
     end.time <- Sys.time()
     
     print(end.time - start.time)
+    
+  })
+  
+  observeEvent(input$update_locations, {
+    withProgress(message = "Retrieving latest locations...", {
+      RV$all_locations <- get_locations_from_api(Sys.getenv("matrix_username"),
+                                                 Sys.getenv("matrix_password")) %>%
+        mutate_if(is.list, as.character) # For some reason, some columns are returned as lists
+    })
+    
+    sendSweetAlert(session, "Locations updated")
+    
+    feather::write_feather(RV$all_locations, "all_locations.feather")
+    
+    s3tools::write_file_to_s3("all_locations.feather",
+                              "alpha-app-matrixbooking/all_locations.feather",
+                              overwrite = T)
+    
     
   })
   
@@ -594,6 +623,32 @@ server <- function(input, output, session) {
   output$no_showers <- renderDataTable({
     DT::datatable(top_no_showers(RV$bookings), rownames = FALSE)
   })
+  
+  
+  # locations ---------------------------------------------------------------
+  
+  output$all_locations <- renderDataTable({
+    DT::datatable(RV$all_locations, rownames = FALSE,
+                  filter = list(position = 'top', clear = FALSE),
+                  options = list(scrollX = TRUE,
+                                 scrollY = TRUE,
+                                 columnDefs = list(list(
+                                   targets = "_all",
+                                   render = JS(
+                                     "function(data, type, row, meta) {",
+                                     "return type === 'display' && data != null && data.length > 30 ?",
+                                     "'<span title=\"' + data + '\">' + data.substr(0, 30) + '...</span>' : data;",
+                                     "}")
+                                 ))),
+                  class = "display")
+  })
+  
+  output$download_locations <- downloadHandler(
+    filename = "matrixbooking_locations.csv",
+    content = function(file) {
+      write.csv(RV$all_locations, file, row.names = FALSE)
+    }
+  )
   
   
   # change to TRUE when deployed
