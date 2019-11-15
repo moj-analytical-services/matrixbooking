@@ -510,7 +510,7 @@ time_of_day_heatmap <- function(joined_observations, varname) {
     summarise(utilisation = mean(!!expr, na.rm = T))
   
   plot_ly(data,
-          x = ~factor(weekday, levels = weekdays),
+          x = ~factor(weekday, levels = weekdays) %>% fct_drop(),
           y = ~fct_rev(time_of_day),
           z = ~utilisation,
           type = "heatmap",
