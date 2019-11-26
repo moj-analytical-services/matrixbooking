@@ -12,6 +12,7 @@ params:
   joined_observations: NULL
   bookings: NULL
   survey_name: NULL
+  report_groups: NULL
   
 title: "`r paste0('Meeting room usage report, ', params$survey_name)`"
 ---
@@ -45,33 +46,51 @@ pie
 ## Overall utilisation
 
 ```{r utilisation, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
-cat("\n\n## Usage by room type \n\n")
+cat("\n\n### Usage by room type \n\n")
 print(room_utilisation_permutation(joined_observations, "devicetype"))
 
-cat("\n\n## Usage by weekday \n\n")
+cat("\n\n### Usage by weekday \n\n")
 print(room_utilisation_permutation(joined_observations, "weekday"))
 
-cat("\n\n## Occupancy heatmap \n\n")
+cat("\n\n### Occupancy heatmap \n\n")
 time_of_day_heatmap(joined_observations, "sensor_value")
 
-cat("\n\n## Bookings heatmap \n\n")
+cat("\n\n### Bookings heatmap \n\n")
 time_of_day_heatmap(joined_observations, "is_booked")
-
+cat("\n\n### Bookings and Occupancy bar chart \n\n")
 time_of_day_bar(joined_observations)
 
 ```
 
-## Charts by room
 
 ```{r charts_by_room, echo=FALSE, results='asis', dpi = 150, fig.width=8.9, fig.height=5}
 
-room_list <- sort(unique(params$joined_observations$roomname))
-for(room in room_list) {
-  cat("\n\n## ", room, "\n\n", sep = "")
-  filtered_observations <- joined_observations %>%
-    dplyr::filter(roomname == room)
+reporting_groupings <- c("By Directorate" = "category_1",
+                         "By Floor" = "floor",
+                         "By restriction level" = "category_3",
+                         "By Room size" = "devicetype",
+                         "By Room" = "roomname")
+
+for(grouping in params$report_groups) {
   
-  print(occupancy_through_day(filtered_observations))
+  grouping_name <- names(which(reporting_groupings == grouping))
+  cat("\n\n## ", grouping_name, sep = "")
   
+  expr <- sym(grouping)
+  
+  variable_list <- joined_observations %>% pull(!!expr) %>% unique() %>% sort()
+  
+  for(var in variable_list) {
+    cat("\n\n### ", var, "\n\n", sep = "")
+    filtered_observations <- joined_observations %>%
+      dplyr::filter(!!expr == var)
+    
+    if(grouping == "roomname") {
+      print(occupancy_through_day(filtered_observations))
+    } else {
+      print(room_utilisation_permutation(filtered_observations, "date"))
+    }
+    
+  }
 }
 ```

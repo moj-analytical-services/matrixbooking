@@ -5,11 +5,13 @@ library(plotly)
 library(lubridate)
 library(dbtools)
 library(DT)
+library(forcats)
+library(reticulate)
 
 source("data_cleaning_functions.R")
 source("charting_functions.R")
 source("athena_queries.R")
-
+source_python("api_requests.py")
 
 my_data <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/joined_observations.feather")
 print("My_data loaded")
@@ -17,17 +19,63 @@ bookings <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/
 print("bookings loaded")
 locations <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/locations.feather")
 print("locations loaded")
+all_locations <- s3tools::read_using(feather::read_feather, "alpha-app-matrixbooking/all_locations.feather")
+
 date_list <- lubridate::date(my_data$obs_datetime)
+report_groupings <- c("By Directorate" = "category_1",
+                      "By Floor" = "floor",
+                      "By restriction level" = "category_3",
+                      "By Room size" = "devicetype",
+                      "By Room" = "roomname")
+
+# ui ----------------------------------------------------------------------
 
 
 ui <- dashboardPage(
-  dashboardHeader(title = "Matrixbooking app v0.3", titleWidth = 350),
+  dashboardHeader(title = "Matrixbooking app v0.5", titleWidth = 350),
   dashboardSidebar(
     sidebarMenu(
       menuItem("Data Download", tabName = "data_download"),
       menuItem("Report by room", tabName = "by_room"),
       menuItem("Report by building", tabName = "by_building"),
-      menuItem("Top users", tabName = "by_users")
+      menuItem("Show/hide building filters", tabName = "building_filters",
+               pickerInput(inputId = "room_type",
+                           label = "Select Room Type(s)",
+                           choices = sort(unique(my_data$devicetype)),
+                           selected = unique(my_data$devicetype),
+                           options = list(`actions-box` = TRUE,
+                                          `selected-text-format` = "count > 4"),
+                           multiple = TRUE),
+               pickerInput(inputId = "building_room",
+                           label = "Select room(s)",
+                           choices = get_room_list(my_data),
+                           selected = unique(my_data$roomname),
+                           options = list(`actions-box` = TRUE,
+                                          `selected-text-format` = "count > 4"),
+                           multiple = TRUE),
+               pickerInput(inputId = "directorate",
+                           label = "Select directorate(s)",
+                           choices = unique(my_data$category_1),
+                           selected = unique(my_data$category_1),
+                           options = list(`actions-box` = TRUE,
+                                          `selected-text-format` = "count > 4"),
+                           multiple = TRUE),
+               pickerInput(inputId = "restriction",
+                           label = "Select restriction type(s)",
+                           choices = sort(unique(my_data$category_3)),
+                           selected = unique(my_data$category_3),
+                           options = list(`actions-box` = TRUE,
+                                          `selected-text-format` = "count > 2"),
+                           multiple = TRUE),
+               pickerInput(inputId = "floor",
+                           label = "Select floor(s)",
+                           choices = sort(unique(my_data$floor)),
+                           selected = unique(my_data$floor),
+                           options = list(`actions-box` = TRUE,
+                                          `selected-text-format` = "count > 4"),
+                           multiple = TRUE)),
+      menuItem("Top users", tabName = "by_users"),
+      menuItem("matrixbooking locations", tabName = "all_locations")
     )
   ),
   
@@ -35,16 +83,26 @@ ui <- dashboardPage(
     tabItems(
       tabItem(tabName = "data_download",
               fluidRow(
-                uiOutput("survey_picker"),
-                dateRangeInput(inputId = "download_date_range", 
-                               label = "Select time period to download",
-                               start = max(min(date_list), today() %m-% months(1)),
-                               end = today() - 1),
-                uiOutput("start_time"),
-                uiOutput("end_time"),
-                
-                actionButton(inputId = "download_data", label = "download data"),
-                downloadButton(outputId = "download_report", label = "download word report")
+                tabBox(id = "controls",
+                       tabPanel("Data download",
+                                uiOutput("survey_picker"),
+                                dateRangeInput(inputId = "download_date_range", 
+                                               label = "Select time period to download",
+                                               start = max(min(date_list), today() %m-% months(1)),
+                                               end = min(max(date_list), today() - 1)),
+                                uiOutput("start_time"),
+                                uiOutput("end_time"),
+                                
+                                actionButton(inputId = "download_data", label = "download data")
+                                
+                       ),
+                       tabPanel("Report download",
+                                checkboxGroupInput(inputId = "report_groups",
+                                                   label = "Select variables to report on",
+                                                   choices = report_groupings),
+                                downloadButton(outputId = "download_report",
+                                               label = "download word report"))
+                )
               )
       ),
       
@@ -87,12 +145,6 @@ ui <- dashboardPage(
       
       tabItem(tabName = "by_building",
               fluidRow(
-                pickerInput(inputId = "room_type",
-                            label = "Select Room Type(s)",
-                            choices = sort(unique(my_data$devicetype)),
-                            selected = unique(my_data$devicetype),
-                            options = list(`actions-box` = TRUE, `selected-text-format` = "count > 4"),
-                            multiple = TRUE),
                 tabBox(id = "by_building_tabBox",
                        tabPanel("room usage by weekday",
                                 plotlyOutput(outputId = "bookings_heatmap"),
@@ -153,25 +205,50 @@ ui <- dashboardPage(
                  )
           )
         )
+      ),
+      
+      tabItem(
+        tabName = "all_locations",
+        box(
+          width = 9,
+          actionButton(inputId = "update_locations",
+                       label = "Update"),
+          downloadButton("download_locations"),
+          dataTableOutput(outputId = "all_locations")
+        )
       )
       
     )
   )
 )
 
+
+# server ------------------------------------------------------------------
+
+
 server <- function(input, output, session) {
   
   RV <- reactiveValues()
   RV$joined_observations <- my_data
   RV$bookings <- bookings
-  RV$surveys <- get_surveys()
+  RV$locations <- locations
+  RV$all_locations <- all_locations
+  
+  surveys <- get_surveys()
+  RV$surveys <- surveys
   
   time_list <- get_time_list()
+  
+  initial_survey_id <- unique(locations$survey_id)
+  initial_survey_name <- surveys %>%
+    dplyr::filter(survey_id == initial_survey_id) %>%
+    pull(name)
   
   output$survey_picker <- renderUI({
     selectInput(inputId = "survey_picker",
                 label = "Select Occupeye Survey",
-                choices = unique(RV$surveys$name))
+                choices = sort(unique(RV$surveys$name)),
+                selected = initial_survey_name)
   })
   
   output$start_time <- renderUI({
@@ -203,6 +280,9 @@ server <- function(input, output, session) {
   })
   
   
+  # observeEvents -----------------------------------------------------------
+  
+  
   observeEvent(input$survey_picker, {
     RV$survey_name <- input$survey_picker
     
@@ -210,14 +290,18 @@ server <- function(input, output, session) {
       dplyr::filter(name == input$survey_picker) %>%
       pull(survey_id)
     
-    start_date <- RV$surveys %>% dplyr::filter(survey_id == RV$selected_survey_id) %>% pull(startdate)
-    end_date <- RV$surveys %>% dplyr::filter(survey_id == RV$selected_survey_id) %>% pull(enddate)
+    start_date <- RV$surveys %>%
+      dplyr::filter(survey_id == RV$selected_survey_id) %>%
+      pull(startdate)
+    end_date <- RV$surveys %>%
+      dplyr::filter(survey_id == RV$selected_survey_id) %>%
+      pull(enddate)
     
     updateDateRangeInput(session,
                          inputId = "download_date_range",
-                         start = max(start_date, today() %m-% months(1)),
+                         start = max(as.Date(start_date), today() %m-% months(1)),
                          min = start_date,
-                         max = end_date)
+                         max = min(as.Date(end_date), today()-1))
     
   })
   
@@ -227,10 +311,7 @@ server <- function(input, output, session) {
     withProgress(message = glue("Downloading data from {input$survey_picker}"), {
       RV$sensor_observations <- get_sensor_observations(RV$selected_survey_id,
                                                         input$download_date_range[[1]],
-                                                        input$download_date_range[[2]]) %>%
-        change_p_to_person() %>%
-        remove_non_business_days() %>%
-        fix_bad_sensor_observations()
+                                                        input$download_date_range[[2]])
       
       
       RV$bookings <- get_bookings(RV$selected_survey_id,
@@ -242,9 +323,11 @@ server <- function(input, output, session) {
       RV$sensorised_bookings <- convert_bookings_to_sensors(RV$bookings)
       
       RV$joined_observations <- get_joined_df(RV$sensor_observations,
-                                              RV$sensorised_bookings %>% dplyr::filter(status != "CANCELLED")) %>%
+                                              RV$sensorised_bookings %>%
+                                                dplyr::filter(status != "CANCELLED")) %>%
         filter_time_range(input$start_time,input$end_time)
       
+      room_list <- get_room_list(RV$joined_observations)
       
       updateSelectInput(session,
                         inputId = "room",
@@ -254,6 +337,26 @@ server <- function(input, output, session) {
                         inputId = "room_type",
                         choices = sort(unique(RV$joined_observations$devicetype)),
                         selected = sort(unique(RV$joined_observations$devicetype)))
+      
+      updatePickerInput(session,
+                        inputId = "building_room",
+                        choices = room_list,
+                        selected = unique(RV$joined_observations$roomname))
+      
+      updatePickerInput(session,
+                        inputId = "directorate",
+                        choices = sort(unique(RV$joined_observations$category_1)),
+                        selected = sort(unique(RV$joined_observations$category_1)))
+      
+      updatePickerInput(session,
+                        inputId = "floor",
+                        choices = sort(unique(RV$joined_observations$floor)),
+                        selected = sort(unique(RV$joined_observations$floor)))
+      
+      updatePickerInput(session,
+                        inputId = "restriction",
+                        choices = sort(unique(RV$joined_observations$category_3)),
+                        selected = sort(unique(RV$joined_observations$category_3)))
       
       feather::write_feather(RV$joined_observations, "joined_observations.feather")
       s3tools::write_file_to_s3("joined_observations.feather",
@@ -282,6 +385,28 @@ server <- function(input, output, session) {
     
   })
   
+  observeEvent(input$update_locations, {
+    withProgress(message = "Retrieving latest locations...", {
+      RV$all_locations <- get_locations_from_api(Sys.getenv("matrix_username"),
+                                                 Sys.getenv("matrix_password")) %>%
+        mutate_if(is.list, as.character) # For some reason, some columns are returned as lists
+    })
+    
+    sendSweetAlert(session, "Locations updated")
+    
+    feather::write_feather(RV$all_locations, "all_locations.feather")
+    
+    s3tools::write_file_to_s3("all_locations.feather",
+                              "alpha-app-matrixbooking/all_locations.feather",
+                              overwrite = T)
+    
+    
+  })
+  
+  
+  # report downloader -------------------------------------------------------
+  
+  
   output$download_report <- downloadHandler(
     filename = "matrixbooking report.docx",
     content = function(file) {
@@ -302,14 +427,16 @@ server <- function(input, output, session) {
         out <- rmarkdown::render(out_report, 
                                  params = list(start_date = input$download_date_range[1],
                                                end_date = input$download_date_range[2], 
-                                               joined_observations = joined_observations(),
+                                               joined_observations = building_observations(),
                                                bookings = RV$bookings,
-                                               survey_name = RV$survey_name))
+                                               survey_name = RV$survey_name,
+                                               report_groups = input$report_groups))
         file.rename(out, file)
       })
       
       
-    })
+    }
+  )
   
   # create reactive data object -----------------------------------------------------------
   joined_observations <- reactive({
@@ -325,7 +452,11 @@ server <- function(input, output, session) {
   
   building_observations <- reactive({
     joined_observations() %>%
-      dplyr::filter(devicetype %in% input$room_type)
+      dplyr::filter(devicetype %in% input$room_type,
+                    category_1 %in% input$directorate,
+                    category_3 %in% input$restriction,
+                    floor %in% input$floor,
+                    roomname %in% input$building_room)
   })
   
   # by room charts ----------------------------------------------------------
@@ -393,7 +524,7 @@ server <- function(input, output, session) {
   })
   
   output$locations_data_room <- renderDataTable({
-    DT::datatable(locations,
+    DT::datatable(RV$locations,
                   filter = list(position = 'top', clear = FALSE),
                   options = list(scrollX = TRUE))
   })
@@ -411,7 +542,7 @@ server <- function(input, output, session) {
   })
   
   output$building_booking_histogram <- renderPlotly({
-    bookings_created_to_meeting_histogram(bookings %>%
+    bookings_created_to_meeting_histogram(RV$bookings %>%
                                             dplyr::filter(location_id %in% unique(building_observations()$location)
                                             )
     )
@@ -492,6 +623,32 @@ server <- function(input, output, session) {
   output$no_showers <- renderDataTable({
     DT::datatable(top_no_showers(RV$bookings), rownames = FALSE)
   })
+  
+  
+  # locations ---------------------------------------------------------------
+  
+  output$all_locations <- renderDataTable({
+    DT::datatable(RV$all_locations, rownames = FALSE,
+                  filter = list(position = 'top', clear = FALSE),
+                  options = list(scrollX = TRUE,
+                                 scrollY = TRUE,
+                                 columnDefs = list(list(
+                                   targets = "_all",
+                                   render = JS(
+                                     "function(data, type, row, meta) {",
+                                     "return type === 'display' && data != null && data.length > 30 ?",
+                                     "'<span title=\"' + data + '\">' + data.substr(0, 30) + '...</span>' : data;",
+                                     "}")
+                                 ))),
+                  class = "display")
+  })
+  
+  output$download_locations <- downloadHandler(
+    filename = "matrixbooking_locations.csv",
+    content = function(file) {
+      write.csv(RV$all_locations, file, row.names = FALSE)
+    }
+  )
   
   
   # change to TRUE when deployed

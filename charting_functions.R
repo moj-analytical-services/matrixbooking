@@ -5,28 +5,35 @@ library(tidyr)
 library(janitor)
 library(forcats)
 
+get_permutation_levels <- function() {
+  c("Not booked (bad sensor reading)",
+    "Booked (bad sensor reading)",
+    "Neither booked nor occupied",
+    "Booked but not occupied",
+    "Occupied but not booked",
+    "Booked and occupied")
+}
+
 get_booked_permutation <- function(joined_observations) {
   joined_observations %>% 
     mutate(booked_permutation = case_when(
-      is.na(sensor_value) ~ "invalid occupeye sensor reading",
-      sensor_value == 1 & is_booked == 1 ~ "3. Booked and occupied",
-      sensor_value == 1 & is_booked == 0 ~ "2. Occupied but not booked",
-      sensor_value == 0 & is_booked == 1 ~ "1. Booked but not occupied",
-      sensor_value == 0 & is_booked == 0 ~ "0. Neither booked nor occupied") %>%
-        factor(levels = c("invalid occupeye sensor reading",
-                          "0. Neither booked nor occupied",
-                          "1. Booked but not occupied",
-                          "2. Occupied but not booked",
-                          "3. Booked and occupied"))
+      is.na(sensor_value) & is_booked == 1 ~ "Booked (bad sensor reading)",
+      is.na(sensor_value) & is_booked == 0 ~ "Not booked (bad sensor reading)",
+      sensor_value == 1 & is_booked == 1 ~ "Booked and occupied",
+      sensor_value == 1 & is_booked == 0 ~ "Occupied but not booked",
+      sensor_value == 0 & is_booked == 1 ~ "Booked but not occupied",
+      sensor_value == 0 & is_booked == 0 ~ "Neither booked nor occupied") %>%
+        factor(levels = get_permutation_levels())
     )
 }
 
 get_permutation_colours <- function() {
-  c("invalid occupeye sensor reading"= "red",
-    "0. Neither booked nor occupied" = "lightgrey",
-    "1. Booked but not occupied" = "sandybrown",
-    "2. Occupied but not booked" = "lemonchiffon",
-    "3. Booked and occupied" = "darkseagreen3")
+  c("Booked (bad sensor reading)" = "steelblue",
+    "Not booked (bad sensor reading)" = "red",
+    "Neither booked nor occupied" = "lightgrey",
+    "Booked but not occupied" = "sandybrown",
+    "Occupied but not booked" = "lemonchiffon",
+    "Booked and occupied" = "darkseagreen3")
 }
 
 room_utilisation_permutation <- function(joined_observations, varname) {
@@ -272,24 +279,27 @@ permutation_summary <- function(joined_observations) {
     get_booked_permutation() %>%
     group_by(booked_permutation) %>%
     summarise(working_hours = n()/6) %>%
-    mutate(proportion = prop.table(working_hours),
-           working_hours = round(working_hours, 2)) %>%
+    mutate(proportion = prop.table(working_hours)) %>%
     adorn_totals() %>%
-    mutate(proportion = scales::percent(proportion))
+    mutate(proportion = scales::percent(proportion),
+           working_hours = round(working_hours, 2))
   
 }
 
 
 permutation_summary_pie <- function(joined_observations) {
   permutation_summary_table <- permutation_summary(joined_observations) %>% 
-    dplyr::filter(booked_permutation != "Total")
+    dplyr::filter(booked_permutation != "Total") %>%
+    mutate(booked_permutation = factor(booked_permutation,
+                                       levels = get_permutation_levels())) 
+  # Janitor's adorn_totals turned factor column into string, so making it a factor again
   
   category_colours <- get_permutation_colours()
   
   ggplot(permutation_summary_table,
          mapping = aes(x = factor(1), y = working_hours, fill = booked_permutation)) +
     geom_bar(stat = "identity") +
-    coord_polar("y") +
+    coord_polar("y", direction = 1) +
     scale_fill_manual(values = category_colours) +
     geom_text(aes(label = proportion), position = position_stack(vjust = 0.5)) +
     theme_minimal() +
@@ -500,7 +510,7 @@ time_of_day_heatmap <- function(joined_observations, varname) {
     summarise(utilisation = mean(!!expr, na.rm = T))
   
   plot_ly(data,
-          x = ~factor(weekday, levels = weekdays),
+          x = ~factor(weekday, levels = weekdays) %>% fct_drop(),
           y = ~fct_rev(time_of_day),
           z = ~utilisation,
           type = "heatmap",
